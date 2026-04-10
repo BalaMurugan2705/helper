@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"bmr-helper","appId":"1:860448358647:android:9f77f543ff92fe65f093f2","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"bmr-helper","configurations":{"android":"1:860448358647:android:9f77f543ff92fe65f093f2","web":"1:860448358647:web:48b82d07ff78b631f093f2"}}}}}}

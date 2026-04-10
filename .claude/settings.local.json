@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l \"D:/helper/home_flutter_app/lib/\"**/*.dart \"D:/helper/home_flutter_app/lib/\"**/**/*.dart)",
+      "Bash(xargs wc:*)",
+      "Bash(flutter pub:*)"
+    ]
+  }
+}

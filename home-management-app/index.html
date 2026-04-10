@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏠 HomeSync — Smart Home Manager</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sidebar-w: 260px;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s cubic-bezier(.4,0,.2,1);
+      /* Dark theme */
+      --bg:        #0d1117;
+      --bg2:       #161b22;
+      --bg3:       #21262d;
+      --surface:   rgba(255,255,255,0.05);
+      --surface2:  rgba(255,255,255,0.08);
+      --border:    rgba(255,255,255,0.1);
+      --text:      #e6edf3;
+      --text2:     #8b949e;
+      --accent:    #58a6ff;
+      --accent2:   #bc8cff;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --red:       #f85149;
+      --orange:    #fb8500;
+      --grad1:     linear-gradient(135deg,#58a6ff,#bc8cff);
+      --grad2:     linear-gradient(135deg,#3fb950,#58a6ff);
+      --grad3:     linear-gradient(135deg,#f85149,#fb8500);
+      --grad4:     linear-gradient(135deg,#d29922,#fb8500);
+      --shadow:    0 8px 32px rgba(0,0,0,0.4);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    [data-theme="light"] {
+      --bg:        #f0f4f8;
+      --bg2:       #ffffff;
+      --bg3:       #e8eef4;
+      --surface:   rgba(0,0,0,0.04);
+      --surface2:  rgba(0,0,0,0.07);
+      --border:    rgba(0,0,0,0.1);
+      --text:      #1a202c;
+      --text2:     #4a5568;
+      --shadow:    0 8px 32px rgba(0,0,0,0.12);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+
+    /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* ─── Layout ─────────────────────────────────────────────────────────────────── */
+    .app { display: flex; height: 100vh; }
+
+    /* ─── Sidebar ──────────────────────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 0 0 16px;
+      z-index: 100;
+      transition: width var(--transition), min-width var(--transition);
+      overflow: hidden;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      font-size: 1.3rem; font-weight: 700;
+      background: var(--grad1);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .sidebar-logo span { font-size: 1.5rem; -webkit-text-fill-color: initial; }
+    .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 14px; border-radius: var(--radius-sm);
+      cursor: pointer; color: var(--text2);
+      font-weight: 500; font-size: .9rem;
+      transition: all var(--transition);
+      white-space: nowrap;
+      position: relative; overflow: hidden;
+    }
+    .nav-item::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--grad1); opacity: 0;
+      transition: opacity var(--transition);
+      border-radius: var(--radius-sm);
+    }
+    .nav-item:hover::before { opacity: 0.1; }
+    .nav-item.active { color: var(--text); background: var(--surface2); }
+    .nav-item.active::before { opacity: 0.15; }
+    .nav-item .icon { font-size: 1.2rem; flex-shrink: 0; position: relative; z-index:1; }
+    .nav-item .label { position: relative; z-index:1; }
+    .nav-badge {
+      margin-left: auto; background: var(--red);
+      color: #fff; font-size: .7rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 99px;
+      position: relative; z-index:1;
+    }
+    .sidebar-footer { padding: 10px 10px 0; border-top: 1px solid var(--border); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      cursor: pointer; color: var(--text2); font-size: .85rem; font-weight: 500;
+      transition: background var(--transition);
+    }
+    .theme-toggle:hover { background: var(--surface2); color: var(--text); }
+    .toggle-track {
+      width: 40px; height: 22px; border-radius: 99px;
+      background: var(--bg3); position: relative;
+      transition: background var(--transition); flex-shrink: 0;
+    }
+    .toggle-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--accent); position: absolute;
+      top: 3px; left: 3px;
+      transition: transform var(--transition);
+    }
+    [data-theme="light"] .toggle-thumb { transform: translateX(18px); }
+    [data-theme="light"] .toggle-track { background: var(--accent); }
+
+    /* ─── Main Content ──────────────────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px;
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar-title { font-size: 1.4rem; font-weight: 700; }
+    .topbar-date { color: var(--text2); font-size: .85rem; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+    .page { flex: 1; overflow-y: auto; padding: 24px 28px; display: none; animation: fadeIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ─── Cards ─────────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    /* ─── Grid layouts ──────────────────────────────────────────────────────────── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+    @media(max-width:1200px) { .grid-4 { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:800px) { .grid-4,.grid-2,.grid-3 { grid-template-columns:1fr; } }
+
+    /* ─── Stat Cards ─────────────────────────────────────────────────────────────── */
+    .stat-card {
+      border-radius: var(--radius); padding: 20px;
+      position: relative; overflow: hidden;
+      cursor: default;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: -30px; right: -30px;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+    .stat-card::after {
+      content: '';
+      position: absolute; bottom: -20px; right: 10px;
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .stat-card .s-icon { font-size: 2rem; margin-bottom: 8px; }
+    .stat-card .s-value { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+    .stat-card .s-label { font-size: .8rem; opacity: .8; margin-top: 4px; font-weight: 500; }
+    .stat-card .s-sub { font-size: .75rem; opacity: .65; margin-top: 6px; }
+    .sc-blue   { background: linear-gradient(135deg,#1a3a6b,#0d2a52); border: 1px solid #2d5a9e; color: #e0efff; }
+    .sc-purple { background: linear-gradient(135deg,#2d1b69,#1a0e42); border: 1px solid #5b3db8; color: #ede0ff; }
+    .sc-green  { background: linear-gradient(135deg,#0d3a1e,#062211); border: 1px solid #1e7a3c; color: #d0f0dc; }
+    .sc-red    { background: linear-gradient(135deg,#4a0e0e,#2d0707); border: 1px solid #8b2020; color: #ffd0d0; }
+    .sc-orange { background: linear-gradient(135deg,#4a2800,#2d1800); border: 1px solid #8b5500; color: #ffe5b0; }
+    [data-theme="light"] .sc-blue   { background: linear-gradient(135deg,#dbeafe,#bfdbfe); border-color: #93c5fd; color: #1e40af; }
+    [data-theme="light"] .sc-purple { background: linear-gradient(135deg,#ede9fe,#ddd6fe); border-color: #c4b5fd; color: #5b21b6; }
+    [data-theme="light"] .sc-green  { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #86efac; color: #166534; }
+    [data-theme="light"] .sc-red    { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #fca5a5; color: #991b1b; }
+    [data-theme="light"] .sc-orange { background: linear-gradient(135deg,#ffedd5,#fed7aa); border-color: #fdba74; color: #9a3412; }
+
+    /* ─── Buttons ────────────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      font-size: .85rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all var(--transition); white-space: nowrap;
+    }
+    .btn-primary { background: var(--grad1); color: #fff; }
+    .btn-primary:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-ghost { background: var(--surface); color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { opacity: .85; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { opacity: .85; }
+    .btn-sm { padding: 5px 10px; font-size: .78rem; }
+    .btn-icon { padding: 7px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all var(--transition); }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); }
+
+    /* ─── Badges / Pills ─────────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 99px;
+      font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .badge-green  { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+    .badge-red    { background: rgba(248,81,73,.15);  color: var(--red);   border: 1px solid rgba(248,81,73,.3); }
+    .badge-yellow { background: rgba(210,153,34,.15); color: var(--yellow); border: 1px solid rgba(210,153,34,.3); }
+    .badge-blue   { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+    .badge-purple { background: rgba(188,140,255,.15); color: var(--accent2); border: 1px solid rgba(188,140,255,.3); }
+    .badge-orange { background: rgba(251,133,0,.15); color: var(--orange); border: 1px solid rgba(251,133,0,.3); }
+
+    /* ─── Progress Bars ──────────────────────────────────────────────────────────── */
+    .progress-bar { height: 8px; background: var(--bg3); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+    .pf-green  { background: var(--grad2); }
+    .pf-yellow { background: var(--grad4); }
+    .pf-red    { background: var(--grad3); }
+    .pf-blue   { background: var(--grad1); }
+
+    /* ─── Forms ──────────────────────────────────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: .82rem; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+    .form-input, .form-select {
+      width: 100%; padding: 9px 12px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-size: .88rem; transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88,166,255,.15);
+    }
+    .form-select option { background: var(--bg2); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ─── Modal ──────────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+    .modal {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+      width: 100%; max-width: 480px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    /* ─── List Items ─────────────────────────────────────────────────────────────── */
+    .list-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      transition: all var(--transition);
+      animation: fadeIn .3s ease;
+    }
+    .list-item:hover { background: var(--surface2); transform: translateX(2px); }
+    .list-item.done { opacity: .55; }
+    .list-item.overdue { border-left: 3px solid var(--red); }
+    .list-item.urgent { border-left: 3px solid var(--orange); }
+
+    /* Checkbox */
+    .check-box {
+      width: 22px; height: 22px; border-radius: 6px;
+      border: 2px solid var(--border); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all var(--transition);
+      font-size: .9rem;
+    }
+    .check-box.checked { background: var(--green); border-color: var(--green); }
+    .check-box:hover { border-color: var(--accent); }
+
+    /* ─── Tooltip ─────────────────────────────────────────────────────────────────── */
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 5px 10px; border-radius: 6px;
+      font-size: .75rem; white-space: nowrap;
+      opacity: 0; pointer-events: none; transition: opacity var(--transition);
+      z-index: 999;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+
+    /* ─── Filter Tabs ─────────────────────────────────────────────────────────────── */
+    .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-tab {
+      padding: 6px 14px; border-radius: 99px;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); color: var(--text2);
+      background: transparent; transition: all var(--transition);
+    }
+    .filter-tab.active, .filter-tab:hover {
+      background: var(--accent); border-color: var(--accent); color: #fff;
+    }
+
+    /* ─── Section headers ─────────────────────────────────────────────────────────── */
+    .section-title {
+      font-size: 1.05rem; font-weight: 700;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border); margin-left: 8px;
+    }
+
+    /* ─── Empty State ─────────────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--text2);
+    }
+    .empty-state .e-icon { font-size: 3rem; margin-bottom: 10px; }
+    .empty-state p { font-size: .9rem; }
+
+    /* ─── Cleaning page specific ──────────────────────────────────────────────────── */
+    .task-meta { flex:1; min-width: 0; }
+    .task-name { font-weight: 600; font-size: .95rem; margin-bottom: 3px; }
+    .task-info { font-size: .78rem; color: var(--text2); }
+    .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ─── Shopping ──────────────────────────────────────────────────────────────── */
+    .shop-cost { font-size: 1rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+    .shop-meta { flex: 1; min-width: 0; }
+
+    /* ─── Budget bars ──────────────────────────────────────────────────────────── */
+    .budget-row { margin-bottom: 18px; }
+    .budget-row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .budget-cat { font-weight: 600; font-size: .9rem; }
+    .budget-nums { font-size: .82rem; color: var(--text2); }
+    .budget-pct { font-weight: 700; font-size: .9rem; }
+
+    /* ─── Health ─────────────────────────────────────────────────────────────────── */
+    .health-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+    .health-goal-name { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .health-streak { display: flex; align-items: center; gap: 6px; color: var(--orange); font-weight: 700; font-size: .9rem; margin-bottom: 12px; }
+    .health-log-btn {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+    }
+    .unit-btn {
+      padding: 6px 14px; border-radius: 99px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text2); font-size: .8rem; font-weight: 600;
+      cursor: pointer; transition: all var(--transition);
+    }
+    .unit-btn:hover, .unit-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ─── AI Suggestions ─────────────────────────────────────────────────────────── */
+    .ai-card {
+      background: linear-gradient(135deg, rgba(88,166,255,.08), rgba(188,140,255,.08));
+      border: 1px solid rgba(88,166,255,.2);
+      border-radius: var(--radius); padding: 16px 20px;
+      margin-bottom: 10px;
+    }
+    .ai-card-head { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 8px; }
+    .ai-card ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .ai-card li { font-size: .85rem; color: var(--text2); display: flex; align-items: flex-start; gap: 6px; }
+    .ai-card li::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+
+    /* ─── Chart container ─────────────────────────────────────────────────────────── */
+    .chart-wrap { position: relative; height: 220px; }
+    .chart-wrap-sm { position: relative; height: 180px; }
+
+    /* ─── Notification dot ───────────────────────────────────────────────────────── */
+    .notif-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--red);
+      position: absolute; top: 8px; right: 8px;
+    }
+
+    /* ─── Overdue glow ───────────────────────────────────────────────────────────── */
+    .overdue-glow {
+      box-shadow: 0 0 0 2px rgba(248,81,73,.3), 0 4px 16px rgba(248,81,73,.15);
+    }
+
+    /* ─── Scrollable list container ───────────────────────────────────────────────── */
+    .scroll-list { max-height: 340px; overflow-y: auto; padding-right: 4px; }
+
+    /* ─── Inline search ───────────────────────────────────────────────────────────── */
+    .search-wrap { position: relative; }
+    .search-wrap .form-input { padding-left: 36px; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text2); pointer-events: none; }
+
+    /* ─── Dashboard AI panel ──────────────────────────────────────────────────────── */
+    .dash-ai {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ────────────── SIDEBAR ────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span>🏠</span> HomeSync
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="icon">📊</span><span class="label">Dashboard</span>
+      </div>
+      <div class="nav-item" data-page="cleaning" onclick="navigate('cleaning')">
+        <span class="icon">🧹</span><span class="label">Cleaning</span>
+        <span class="nav-badge" id="cleaning-badge">0</span>
+      </div>
+      <div class="nav-item" data-page="shopping" onclick="navigate('shopping')">
+        <span class="icon">🛒</span><span class="label">Shopping</span>
+        <span class="nav-badge" id="shopping-badge">0</span>
+      </div>
+      <div class="nav-item" data-page="budget" onclick="navigate('budget')">
+        <span class="icon">💰</span><span class="label">Budget</span>
+        <span class="nav-badge" id="budget-badge" style="background:var(--yellow);color:#000;">0</span>
+      </div>
+      <div class="nav-item" data-page="health" onclick="navigate('health')">
+        <span class="icon">🌿</span><span class="label">Health</span>
+      </div>
+      <div class="nav-item" data-page="ai" onclick="navigate('ai')">
+        <span class="icon">🤖</span><span class="label">AI Advisor</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="theme-toggle" onclick="toggleTheme()">
+        <span>🌙</span>
+        <div class="toggle-track"><div class="toggle-thumb"></div></div>
+        <span>☀️</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ────────────── MAIN ────────────── -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">📊 Dashboard</div>
+        <div class="topbar-date" id="page-date"></div>
+      </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+
+    <!-- ══════ DASHBOARD ══════ -->
+    <section class="page active" id="page-dashboard">
+      <!-- Stat Cards -->
+      <div class="grid-4" id="dash-stats"></div>
+
+      <!-- Charts row -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Budget Overview</div></div>
+          <div class="chart-wrap"><canvas id="chart-budget-dash"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🧹 Task Status</div></div>
+          <div class="chart-wrap"><canvas id="chart-task-dash"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Urgent tasks -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🚨 Urgent Tasks</div>
+            <button class="btn btn-ghost btn-sm" onclick="navigate('cleaning')">View All</button>
+          </div>
+          <div id="dash-urgent-tasks"></div>
+        </div>
+        <!-- AI Insights -->
+        <div class="dash-ai">
+          <div class="section-title" style="margin-bottom:12px;">🤖 Today's AI Plan</div>
+          <div id="dash-ai-plan"></div>
+        </div>
+      </div>
+
+      <!-- Shopping summary -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div class="card-title">🛒 High-Priority Shopping</div>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('shopping')">View All</button>
+        </div>
+        <div id="dash-shopping-preview"></div>
+      </div>
+    </section>
+
+    <!-- ══════ CLEANING ══════ -->
+    <section class="page" id="page-cleaning">
+      <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
+        <div class="filter-tabs" id="cleaning-filters">
+          <button class="filter-tab active" onclick="setCleanFilter('all',this)">All</button>
+          <button class="filter-tab" onclick="setCleanFilter('overdue',this)">🔴 Overdue</button>
+          <button class="filter-tab" onclick="setCleanFilter('pending',this)">⏳ Pending</button>
+          <button class="filter-tab" onclick="setCleanFilter('completed',this)">✅ Done</button>
+        </div>
+        <div style="flex:1;min-width:180px;" class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input class="form-input" placeholder="Search tasks…" oninput="renderCleaning()" id="clean-search" />
+        </div>
+      </div>
+      <div id="cleaning-list"></div>
+    </section>
+
+    <!-- ══════ SHOPPING ══════ -->
+    <section class="page" id="page-shopping">
+      <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="setShopFilter('all',this)">All</button>
+          <button class="filter-tab" onclick="setShopFilter('high',this)">🔴 High</button>
+          <button class="filter-tab" onclick="setShopFilter('medium',this)">🟡 Medium</button>
+          <button class="filter-tab" onclick="setShopFilter('low',this)">🟢 Low</button>
+          <button class="filter-tab" onclick="setShopFilter('unbought',this)">🛒 To Buy</button>
+        </div>
+      </div>
+
+      <!-- Budget summary strip -->
+      <div id="shop-budget-strip" style="margin-bottom:16px;"></div>
+
+      <div id="shopping-list"></div>
+    </section>
+
+    <!-- ══════ BUDGET ══════ -->
+    <section class="page" id="page-budget">
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🍩 Spending by Category</div></div>
+          <div class="chart-wrap"><canvas id="chart-budget-donut"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Budget vs Spent</div></div>
+          <div class="chart-wrap"><canvas id="chart-budget-bar"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">💳 Category Breakdown</div>
+        </div>
+        <div id="budget-breakdown"></div>
+      </div>
+    </section>
+
+    <!-- ══════ HEALTH ══════ -->
+    <section class="page" id="page-health">
+      <div class="grid-2" style="margin-bottom:20px;">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📈 Weekly Health Score</div></div>
+          <div class="chart-wrap"><canvas id="chart-health"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🎯 Today's Progress</div></div>
+          <div id="health-today-progress"></div>
+        </div>
+      </div>
+      <div id="health-goals-list"></div>
+    </section>
+
+    <!-- ══════ AI ADVISOR ══════ -->
+    <section class="page" id="page-ai">
+      <div class="grid-3" style="margin-bottom:20px;" id="ai-summary-cards"></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">🤖 Full AI Home Analysis</div></div>
+        <div id="ai-full-report"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ────────────── MODALS ────────────── -->
+
+<!-- Add/Edit Task Modal -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <div class="modal-title">🧹 <span id="modal-task-title">Add Cleaning Task</span></div>
+    <div class="form-group"><label class="form-label">Task Name</label><input class="form-input" id="task-name" placeholder="e.g. Vacuum Living Room" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Frequency</label>
+        <select class="form-select" id="task-freq">
+          <option value="daily">Daily</option>
+          <option value="weekly" selected>Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Last Done Date</label><input type="date" class="form-input" id="task-date" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Room / Category</label><input class="form-input" id="task-room" placeholder="e.g. Bathroom" /></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-task')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTask()">💾 Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Shopping Modal -->
+<div class="modal-overlay" id="modal-shop">
+  <div class="modal">
+    <div class="modal-title">🛒 <span id="modal-shop-title">Add Shopping Item</span></div>
+    <div class="form-group"><label class="form-label">Item Name</label><input class="form-input" id="shop-name" placeholder="e.g. Organic Milk" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select class="form-select" id="shop-priority">
+          <option value="high">🔴 High</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Cost (₹)</label><input type="number" class="form-input" id="shop-cost" placeholder="0" min="0" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="shop-cat" placeholder="e.g. Groceries" /></div>
+      <div class="form-group"><label class="form-label">Quantity</label><input class="form-input" id="shop-qty" placeholder="e.g. 2 packs" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-shop')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveShop()">💾 Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Budget Category Modal -->
+<div class="modal-overlay" id="modal-budget">
+  <div class="modal">
+    <div class="modal-title">💰 <span id="modal-budget-title">Add Budget Category</span></div>
+    <div class="form-group"><label class="form-label">Category Name</label><input class="form-input" id="bud-cat" placeholder="e.g. Transportation" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Budget Amount (₹)</label><input type="number" class="form-input" id="bud-amount" placeholder="0" min="0" /></div>
+      <div class="form-group"><label class="form-label">Amount Spent (₹)</label><input type="number" class="form-input" id="bud-spent" placeholder="0" min="0" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-budget')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBudget()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Health Goal Modal -->
+<div class="modal-overlay" id="modal-health">
+  <div class="modal">
+    <div class="modal-title">🌿 <span id="modal-health-title">Add Health Goal</span></div>
+    <div class="form-group"><label class="form-label">Goal Name</label><input class="form-input" id="h-name" placeholder="e.g. Drink More Water" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Target (per day)</label><input type="number" class="form-input" id="h-target" placeholder="e.g. 8" /></div>
+      <div class="form-group"><label class="form-label">Current Progress</label><input type="number" class="form-input" id="h-current" placeholder="e.g. 5" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Unit</label><input class="form-input" id="h-unit" placeholder="e.g. glasses, hours, mins" /></div>
+      <div class="form-group"><label class="form-label">Emoji Icon</label><input class="form-input" id="h-icon" placeholder="e.g. 💧 😴 🏃" maxlength="4" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-health')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHealth()">💾 Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  STATE & CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const TODAY = '2026-04-10';
+const today = new Date(TODAY);
+
+const SEED = {
+  cleaning: [
+    { id: uid(), name: 'Bathroom Deep Clean', frequency: 'weekly', lastDone: '2026-04-05', room: 'Bathroom' },
+    { id: uid(), name: 'Kitchen Wipe-Down', frequency: 'daily', lastDone: '2026-04-08', room: 'Kitchen' },
+    { id: uid(), name: 'Vacuum Floors', frequency: 'weekly', lastDone: '2026-03-30', room: 'Living Room' },
+    { id: uid(), name: 'Wash Dishes', frequency: 'daily', lastDone: '2026-04-09', room: 'Kitchen' },
+    { id: uid(), name: 'Change Bed Sheets', frequency: 'monthly', lastDone: '2026-03-15', room: 'Bedroom' },
+    { id: uid(), name: 'Clean Windows', frequency: 'monthly', lastDone: '2026-04-01', room: 'All Rooms' },
+  ],
+  shopping: [
+    { id: uid(), name: 'Milk', priority: 'high', cost: 60, category: 'Groceries', quantity: '1 litre', bought: false },
+    { id: uid(), name: 'Bread', priority: 'high', cost: 40, category: 'Groceries', quantity: '1 loaf', bought: false },
+    { id: uid(), name: 'Shampoo', priority: 'medium', cost: 150, category: 'Personal Care', quantity: '1 bottle', bought: true },
+    { id: uid(), name: 'Vegetables (weekly)', priority: 'high', cost: 250, category: 'Groceries', quantity: 'Assorted', bought: false },
+    { id: uid(), name: 'Cooking Oil', priority: 'medium', cost: 180, category: 'Groceries', quantity: '1 litre', bought: false },
+    { id: uid(), name: 'Notebook', priority: 'low', cost: 60, category: 'Stationery', quantity: '2', bought: false },
+    { id: uid(), name: 'Toothpaste', priority: 'medium', cost: 80, category: 'Personal Care', quantity: '1 tube', bought: true },
+  ],
+  budget: [
+    { id: uid(), category: 'Groceries', budget: 3000, spent: 2700 },
+    { id: uid(), category: 'Utilities', budget: 2000, spent: 1800 },
+    { id: uid(), category: 'Entertainment', budget: 1000, spent: 1200 },
+    { id: uid(), category: 'Personal Care', budget: 800, spent: 420 },
+    { id: uid(), category: 'Transportation', budget: 1500, spent: 980 },
+  ],
+  health: [
+    { id: uid(), name: 'Sleep', target: 8, current: 6, unit: 'hours', icon: '😴', streak: 2, logs: [5,6,7,6,6,7,6] },
+    { id: uid(), name: 'Exercise', target: 30, current: 30, unit: 'mins', icon: '🏃', streak: 3, logs: [0,30,25,30,30,30,30] },
+    { id: uid(), name: 'Water Intake', target: 8, current: 5, unit: 'glasses', icon: '💧', streak: 5, logs: [6,7,5,8,6,5,5] },
+    { id: uid(), name: 'Meditation', target: 10, current: 0, unit: 'mins', icon: '🧘', streak: 0, logs: [10,10,0,10,0,0,0] },
+  ],
+};
+
+function uid() { return '_' + Math.random().toString(36).slice(2, 11); }
+
+function loadState() {
+  const saved = localStorage.getItem('homesync_v3');
+  if (saved) try { return JSON.parse(saved); } catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function saveState() { localStorage.setItem('homesync_v3', JSON.stringify(state)); }
+
+let state = loadState();
+
+// Edit indices
+let editId = { task: null, shop: null, budget: null, health: null };
+let filters = { clean: 'all', shop: 'all' };
+
+// Charts instances cache
+let charts = {};
+
+// ════════════════════════════════════════════════════════════════
+//  DATE HELPERS
+// ════════════════════════════════════════════════════════════════
+function addDays(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+function daysDiff(a, b) {
+  // b - a in days
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+function freqDays(freq) {
+  return { daily: 1, weekly: 7, monthly: 30 }[freq] || 7;
+}
+function getNextDue(task) {
+  return addDays(task.lastDone, freqDays(task.frequency));
+}
+function getTaskStatus(task) {
+  const next = getNextDue(task);
+  const diff = daysDiff(TODAY, next); // positive = future, negative = past
+  if (diff < -2) return 'overdue-critical'; // overdue by more than 2 days
+  if (diff < 0) return 'overdue';
+  if (diff === 0) return 'due-today';
+  return 'upcoming';
+}
+function statusLabel(task) {
+  const s = getTaskStatus(task);
+  const next = getNextDue(task);
+  const diff = daysDiff(TODAY, next);
+  if (s === 'overdue-critical') return `🔴 Overdue by ${Math.abs(diff)} days`;
+  if (s === 'overdue') return `🟠 Overdue by ${Math.abs(diff)} day`;
+  if (s === 'due-today') return `🟡 Due Today`;
+  if (diff === 1) return `🔵 Due Tomorrow`;
+  return `🟢 Due in ${diff} days`;
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════════════
+const PAGE_TITLES = {
+  dashboard: '📊 Dashboard',
+  cleaning: '🧹 Cleaning Schedule',
+  shopping: '🛒 Shopping Manager',
+  budget: '💰 Budget Tracker',
+  health: '🌿 Health Habits',
+  ai: '🤖 AI Home Advisor',
+};
+const PAGE_ACTIONS = {
+  cleaning: `<button class="btn btn-primary" onclick="openTaskModal()">＋ Add Task</button>`,
+  shopping: `<button class="btn btn-primary" onclick="openShopModal()">＋ Add Item</button>`,
+  budget: `<button class="btn btn-primary" onclick="openBudgetModal()">＋ Add Category</button>`,
+  health: `<button class="btn btn-primary" onclick="openHealthModal()">＋ Add Goal</button>`,
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[page];
+  document.getElementById('topbar-actions').innerHTML = PAGE_ACTIONS[page] || '';
+  renderPage(page);
+}
+
+function renderPage(page) {
+  const fn = { dashboard: renderDashboard, cleaning: renderCleaning, shopping: renderShopping, budget: renderBudget, health: renderHealth, ai: renderAI };
+  if (fn[page]) fn[page]();
+  updateBadges();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  BADGES
+// ════════════════════════════════════════════════════════════════
+function updateBadges() {
+  const overdue = state.cleaning.filter(t => ['overdue', 'overdue-critical'].includes(getTaskStatus(t))).length;
+  const dueToday = state.cleaning.filter(t => getTaskStatus(t) === 'due-today').length;
+  const cb = document.getElementById('cleaning-badge');
+  cb.textContent = overdue + dueToday;
+  cb.style.display = (overdue + dueToday) > 0 ? '' : 'none';
+
+  const unbought = state.shopping.filter(s => !s.bought && s.priority === 'high').length;
+  const sb = document.getElementById('shopping-badge');
+  sb.textContent = unbought;
+  sb.style.display = unbought > 0 ? '' : 'none';
+
+  const overspent = state.budget.filter(b => b.spent > b.budget).length;
+  const bb = document.getElementById('budget-badge');
+  bb.textContent = overspent;
+  bb.style.display = overspent > 0 ? '' : 'none';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════════════════════════
+function renderDashboard() {
+  // ── Stat cards
+  const totalBudget = state.budget.reduce((s,b) => s + b.budget, 0);
+  const totalSpent = state.budget.reduce((s,b) => s + b.spent, 0);
+  const overdueTasks = state.cleaning.filter(t => ['overdue','overdue-critical'].includes(getTaskStatus(t))).length;
+  const dueTodayTasks = state.cleaning.filter(t => getTaskStatus(t) === 'due-today').length;
+  const unbought = state.shopping.filter(s => !s.bought).length;
+  const healthAvg = Math.round(state.health.reduce((s,h) => s + Math.round((h.current / h.target) * 100), 0) / state.health.length);
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card sc-red">
+      <div class="s-icon">🚨</div>
+      <div class="s-value">${overdueTasks}</div>
+      <div class="s-label">Overdue Tasks</div>
+      <div class="s-sub">${dueTodayTasks} due today</div>
+    </div>
+    <div class="stat-card sc-blue">
+      <div class="s-icon">🛒</div>
+      <div class="s-value">${unbought}</div>
+      <div class="s-label">Items to Buy</div>
+      <div class="s-sub">₹${state.shopping.filter(s=>!s.bought).reduce((a,s)=>a+s.cost,0)} pending</div>
+    </div>
+    <div class="stat-card ${totalSpent > totalBudget ? 'sc-red' : totalSpent / totalBudget > 0.8 ? 'sc-orange' : 'sc-green'}">
+      <div class="s-icon">💰</div>
+      <div class="s-value">₹${totalSpent.toLocaleString('en-IN')}</div>
+      <div class="s-label">Total Spent</div>
+      <div class="s-sub">of ₹${totalBudget.toLocaleString('en-IN')} budget</div>
+    </div>
+    <div class="stat-card sc-purple">
+      <div class="s-icon">🌿</div>
+      <div class="s-value">${healthAvg}%</div>
+      <div class="s-label">Health Score</div>
+      <div class="s-sub">Daily goal avg</div>
+    </div>
+  `;
+
+  // ── Urgent tasks
+  const urgent = state.cleaning
+    .filter(t => ['overdue','overdue-critical','due-today'].includes(getTaskStatus(t)))
+    .sort((a,b) => {
+      const order = { 'overdue-critical': 0, 'overdue': 1, 'due-today': 2 };
+      return order[getTaskStatus(a)] - order[getTaskStatus(b)];
+    });
+  const urgentEl = document.getElementById('dash-urgent-tasks');
+  if (urgent.length === 0) {
+    urgentEl.innerHTML = '<div class="empty-state"><div class="e-icon">✅</div><p>All tasks on track!</p></div>';
+  } else {
+    urgentEl.innerHTML = urgent.slice(0,4).map(t => {
+      const s = getTaskStatus(t);
+      return `<div class="list-item ${s === 'overdue-critical' ? 'overdue overdue-glow' : s === 'overdue' ? 'overdue' : ''}">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:.9rem;">${t.name}</div>
+          <div style="font-size:.75rem;color:var(--text2);">${t.room} · ${t.frequency} · ${statusLabel(t)}</div>
+        </div>
+        <button class="btn btn-success btn-sm" onclick="markTaskDone('${t.id}','dashboard')">✓ Done</button>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Shopping preview (high priority unbought)
+  const highShop = state.shopping.filter(s => !s.bought && s.priority === 'high').slice(0,4);
+  const shopEl = document.getElementById('dash-shopping-preview');
+  if (highShop.length === 0) {
+    shopEl.innerHTML = '<div class="empty-state"><div class="e-icon">🎉</div><p>No urgent items pending!</p></div>';
+  } else {
+    shopEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      ${highShop.map(s => `
+        <div style="background:var(--surface);border:1px solid rgba(248,81,73,.25);border-radius:10px;padding:14px;">
+          <div style="font-weight:700;margin-bottom:4px;">${s.name}</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px;">${s.category} · ${s.quantity || '—'}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--accent);">₹${s.cost}</div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  // ── AI Plan
+  renderDashAI();
+
+  // ── Charts
+  renderDashCharts();
+}
+
+function renderDashCharts() {
+  // Budget doughnut
+  destroyChart('chart-budget-dash');
+  const bCtx = document.getElementById('chart-budget-dash').getContext('2d');
+  const colors = ['#58a6ff','#3fb950','#f85149','#bc8cff','#fb8500','#d29922'];
+  charts['chart-budget-dash'] = new Chart(bCtx, {
+    type: 'doughnut',
+    data: {
+      labels: state.budget.map(b => b.category),
+      datasets: [{
+        data: state.budget.map(b => b.spent),
+        backgroundColor: colors.slice(0, state.budget.length),
+        borderWidth: 2,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#161b22',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: getComputedStyle(document.body).getPropertyValue('--text').trim() || '#e6edf3', font: { size: 11 } } } },
+      cutout: '65%',
+    }
+  });
+
+  // Task status pie
+  destroyChart('chart-task-dash');
+  const tCtx = document.getElementById('chart-task-dash').getContext('2d');
+  const oc = state.cleaning.filter(t => t.completed).length;
+  const overdue = state.cleaning.filter(t => ['overdue','overdue-critical'].includes(getTaskStatus(t))).length;
+  const dueT = state.cleaning.filter(t => getTaskStatus(t) === 'due-today').length;
+  const upcoming = state.cleaning.length - oc - overdue - dueT;
+  charts['chart-task-dash'] = new Chart(tCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Overdue', 'Due Today', 'Upcoming', 'Done'],
+      datasets: [{
+        data: [overdue, dueT, Math.max(0,upcoming), oc],
+        backgroundColor: ['#f85149','#d29922','#58a6ff','#3fb950'],
+        borderWidth: 2,
+        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#161b22',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: getComputedStyle(document.body).getPropertyValue('--text').trim() || '#e6edf3', font: { size: 11 } } } },
+    }
+  });
+}
+
+function renderDashAI() {
+  const overdueTasks = state.cleaning.filter(t => ['overdue','overdue-critical'].includes(getTaskStatus(t)));
+  const highShop = state.shopping.filter(s => !s.bought && s.priority === 'high');
+  const critBudget = state.budget.filter(b => b.spent >= b.budget * 0.9);
+  const lines = [];
+  if (overdueTasks.length) lines.push(`<li>Clean overdue: <strong>${overdueTasks.map(t=>t.name).join(', ')}</strong></li>`);
+  if (highShop.length) lines.push(`<li>Buy urgently: <strong>${highShop.map(s=>s.name).join(', ')}</strong> (₹${highShop.reduce((a,s)=>a+s.cost,0)})</li>`);
+  if (critBudget.length) lines.push(`<li>Reduce spending in: <strong>${critBudget.map(b=>b.category).join(', ')}</strong></li>`);
+  state.health.forEach(h => {
+    const pct = Math.round((h.current / h.target) * 100);
+    if (pct < 70) lines.push(`<li>Boost <strong>${h.name}</strong> goal — ${h.current}/${h.target} ${h.unit} today</li>`);
+  });
+  if (!lines.length) lines.push('<li>All systems green — great work today! 🎉</li>');
+  document.getElementById('dash-ai-plan').innerHTML = `<ul>${lines.join('')}</ul>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CLEANING
+// ════════════════════════════════════════════════════════════════
+let cleanFilter = 'all';
+function setCleanFilter(f, el) {
+  cleanFilter = f;
+  document.querySelectorAll('#cleaning-filters .filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderCleaning();
+}
+
+function renderCleaning() {
+  const search = (document.getElementById('clean-search')?.value || '').toLowerCase();
+  let tasks = state.cleaning.filter(t => {
+    const s = getTaskStatus(t);
+    if (search && !t.name.toLowerCase().includes(search) && !t.room.toLowerCase().includes(search)) return false;
+    if (cleanFilter === 'overdue') return s === 'overdue' || s === 'overdue-critical';
+    if (cleanFilter === 'pending') return !t.completed;
+    if (cleanFilter === 'completed') return t.completed;
+    return true;
+  });
+
+  // Sort: overdue-critical → overdue → due-today → upcoming
+  const order = { 'overdue-critical': 0, 'overdue': 1, 'due-today': 2, 'upcoming': 3 };
+  tasks.sort((a,b) => {
+    const sa = t => t.completed ? 99 : (order[getTaskStatus(t)] ?? 4);
+    return sa(a) - sa(b);
+  });
+
+  const el = document.getElementById('cleaning-list');
+  if (!tasks.length) {
+    el.innerHTML = '<div class="empty-state"><div class="e-icon">🧹</div><p>No tasks found.</p></div>';
+    return;
+  }
+
+  el.innerHTML = tasks.map(t => {
+    const s = getTaskStatus(t);
+    const isDone = t.completed;
+    const cls = isDone ? 'done' : s === 'overdue-critical' ? 'overdue overdue-glow' : s === 'overdue' ? 'overdue' : s === 'due-today' ? 'urgent' : '';
+    const badge = isDone ? '<span class="badge badge-green">✓ Done</span>'
+      : s === 'overdue-critical' ? '<span class="badge badge-red">🔴 Critical</span>'
+      : s === 'overdue' ? '<span class="badge badge-orange">Overdue</span>'
+      : s === 'due-today' ? '<span class="badge badge-yellow">Due Today</span>'
+      : '<span class="badge badge-blue">Upcoming</span>';
+    const freqBadge = `<span class="badge badge-purple">${t.frequency}</span>`;
+    return `
+      <div class="list-item ${cls}" id="task-${t.id}">
+        <div class="check-box ${isDone ? 'checked' : ''}" onclick="toggleTask('${t.id}')">
+          ${isDone ? '✓' : ''}
+        </div>
+        <div class="task-meta">
+          <div class="task-name ${isDone ? 'text-decoration:line-through' : ''}">${t.name}</div>
+          <div class="task-info">📍 ${t.room} &nbsp;·&nbsp; ${freqBadge} &nbsp;·&nbsp; Last: ${fmtDate(t.lastDone)} &nbsp;·&nbsp; Next: ${fmtDate(getNextDue(t))}</div>
+          <div style="margin-top:5px;">${badge} &nbsp; ${statusLabel(t)}</div>
+        </div>
+        <div class="task-actions">
+          <button class="btn-icon" data-tip="Edit" onclick="openTaskModal('${t.id}')">✏️</button>
+          <button class="btn-icon" data-tip="Delete" onclick="deleteTask('${t.id}')">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleTask(id) {
+  const t = state.cleaning.find(t => t.id === id);
+  if (!t) return;
+  t.completed = !t.completed;
+  if (t.completed) t.lastDone = TODAY;
+  saveState();
+  renderCleaning();
+  updateBadges();
+}
+
+function markTaskDone(id, from) {
+  const t = state.cleaning.find(t => t.id === id);
+  if (!t) return;
+  t.completed = true;
+  t.lastDone = TODAY;
+  saveState();
+  if (from === 'dashboard') renderDashboard();
+  else renderCleaning();
+  updateBadges();
+}
+
+function openTaskModal(id) {
+  editId.task = id || null;
+  const t = id ? state.cleaning.find(x => x.id === id) : null;
+  document.getElementById('modal-task-title').textContent = t ? 'Edit Cleaning Task' : 'Add Cleaning Task';
+  document.getElementById('task-name').value = t ? t.name : '';
+  document.getElementById('task-freq').value = t ? t.frequency : 'weekly';
+  document.getElementById('task-date').value = t ? t.lastDone : TODAY;
+  document.getElementById('task-room').value = t ? t.room : '';
+  openModal('modal-task');
+}
+
+function saveTask() {
+  const name = document.getElementById('task-name').value.trim();
+  const freq = document.getElementById('task-freq').value;
+  const date = document.getElementById('task-date').value;
+  const room = document.getElementById('task-room').value.trim() || 'General';
+  if (!name) { alert('Please enter a task name.'); return; }
+  if (editId.task) {
+    const t = state.cleaning.find(x => x.id === editId.task);
+    if (t) { t.name = name; t.frequency = freq; t.lastDone = date; t.room = room; t.completed = false; }
+  } else {
+    state.cleaning.push({ id: uid(), name, frequency: freq, lastDone: date, room, completed: false });
+  }
+  saveState();
+  closeModal('modal-task');
+  renderCleaning();
+  updateBadges();
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  state.cleaning = state.cleaning.filter(t => t.id !== id);
+  saveState();
+  renderCleaning();
+  updateBadges();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SHOPPING
+// ════════════════════════════════════════════════════════════════
+let shopFilter = 'all';
+function setShopFilter(f, el) {
+  shopFilter = f;
+  document.querySelectorAll('.filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderShopping();
+}
+
+function renderShopping() {
+  const priOrder = { high: 0, medium: 1, low: 2 };
+  let items = state.shopping.filter(s => {
+    if (shopFilter === 'high') return s.priority === 'high';
+    if (shopFilter === 'medium') return s.priority === 'medium';
+    if (shopFilter === 'low') return s.priority === 'low';
+    if (shopFilter === 'unbought') return !s.bought;
+    return true;
+  });
+  items.sort((a,b) => {
+    if (a.bought !== b.bought) return a.bought ? 1 : -1;
+    return priOrder[a.priority] - priOrder[b.priority];
+  });
+
+  // Budget strip
+  const totalCost = state.shopping.reduce((a,s) => a + s.cost, 0);
+  const pending = state.shopping.filter(s => !s.bought).reduce((a,s) => a + s.cost, 0);
+  const bought = state.shopping.filter(s => s.bought).reduce((a,s) => a + s.cost, 0);
+  const groceryBudget = state.budget.find(b => b.category === 'Groceries');
+  document.getElementById('shop-budget-strip').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div class="card" style="text-align:center;padding:14px;">
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px;">Total Items</div>
+        <div style="font-size:1.4rem;font-weight:800;">${state.shopping.length}</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;border-color:rgba(248,81,73,.3);">
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px;">Pending Cost</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--red);">₹${pending}</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px;border-color:rgba(63,185,80,.3);">
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px;">Already Bought</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--green);">₹${bought}</div>
+      </div>
+    </div>
+  `;
+
+  const el = document.getElementById('shopping-list');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state"><div class="e-icon">🛒</div><p>No items found.</p></div>';
+    return;
+  }
+
+  const priBadge = { high: 'badge-red', medium: 'badge-yellow', low: 'badge-green' };
+  const priLabel = { high: '🔴 High', medium: '🟡 Medium', low: '🟢 Low' };
+
+  el.innerHTML = items.map(s => `
+    <div class="list-item ${s.bought ? 'done' : ''}">
+      <div class="check-box ${s.bought ? 'checked' : ''}" onclick="toggleShop('${s.id}')">
+        ${s.bought ? '✓' : ''}
+      </div>
+      <div class="shop-meta">
+        <div style="font-weight:600;font-size:.95rem;${s.bought ? 'text-decoration:line-through;' : ''}">${s.name}</div>
+        <div style="font-size:.78rem;color:var(--text2);margin-top:2px;">
+          📦 ${s.category} &nbsp;·&nbsp; Qty: ${s.quantity || '—'}
+        </div>
+        <div style="margin-top:5px;">
+          <span class="badge ${priBadge[s.priority]}">${priLabel[s.priority]}</span>
+          ${s.bought ? '<span class="badge badge-green" style="margin-left:6px;">✓ Bought</span>' : ''}
+        </div>
+      </div>
+      <div class="shop-cost">₹${s.cost}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn-icon" data-tip="Edit" onclick="openShopModal('${s.id}')">✏️</button>
+        <button class="btn-icon" data-tip="Delete" onclick="deleteShop('${s.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleShop(id) {
+  const s = state.shopping.find(s => s.id === id);
+  if (s) { s.bought = !s.bought; saveState(); renderShopping(); updateBadges(); }
+}
+
+function openShopModal(id) {
+  editId.shop = id || null;
+  const s = id ? state.shopping.find(x => x.id === id) : null;
+  document.getElementById('modal-shop-title').textContent = s ? 'Edit Item' : 'Add Shopping Item';
+  document.getElementById('shop-name').value = s ? s.name : '';
+  document.getElementById('shop-priority').value = s ? s.priority : 'medium';
+  document.getElementById('shop-cost').value = s ? s.cost : '';
+  document.getElementById('shop-cat').value = s ? s.category : '';
+  document.getElementById('shop-qty').value = s ? s.quantity : '';
+  openModal('modal-shop');
+}
+
+function saveShop() {
+  const name = document.getElementById('shop-name').value.trim();
+  if (!name) { alert('Enter an item name.'); return; }
+  const item = {
+    name,
+    priority: document.getElementById('shop-priority').value,
+    cost: parseFloat(document.getElementById('shop-cost').value) || 0,
+    category: document.getElementById('shop-cat').value.trim() || 'General',
+    quantity: document.getElementById('shop-qty').value.trim() || '1',
+    bought: false,
+  };
+  if (editId.shop) {
+    const idx = state.shopping.findIndex(x => x.id === editId.shop);
+    if (idx >= 0) state.shopping[idx] = { ...state.shopping[idx], ...item };
+  } else {
+    state.shopping.push({ id: uid(), ...item });
+  }
+  saveState();
+  closeModal('modal-shop');
+  renderShopping();
+  updateBadges();
+}
+
+function deleteShop(id) {
+  if (!confirm('Delete this item?')) return;
+  state.shopping = state.shopping.filter(s => s.id !== id);
+  saveState();
+  renderShopping();
+  updateBadges();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  BUDGET
+// ════════════════════════════════════════════════════════════════
+function renderBudget() {
+  // Category breakdown
+  const el = document.getElementById('budget-breakdown');
+  el.innerHTML = state.budget.map(b => {
+    const pct = Math.min(Math.round((b.spent / b.budget) * 100), 150);
+    const alert = b.spent > b.budget ? '🔴 OVER BUDGET' : pct >= 90 ? '🔴 CRITICAL' : pct >= 70 ? '🟡 WARNING' : '🟢 GOOD';
+    const alertBadge = b.spent > b.budget ? 'badge-red' : pct >= 90 ? 'badge-red' : pct >= 70 ? 'badge-yellow' : 'badge-green';
+    const fillClass = b.spent > b.budget ? 'pf-red' : pct >= 90 ? 'pf-red' : pct >= 70 ? 'pf-yellow' : 'pf-green';
+    const barPct = Math.min((b.spent / b.budget) * 100, 100);
+    return `
+      <div class="budget-row">
+        <div class="budget-row-head">
+          <div>
+            <span class="budget-cat">${b.category}</span>
+            <span class="badge ${alertBadge}" style="margin-left:8px;">${alert}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="budget-nums">₹${b.spent.toLocaleString('en-IN')} / ₹${b.budget.toLocaleString('en-IN')}</span>
+            <span class="budget-pct" style="color:${b.spent > b.budget ? 'var(--red)' : pct >= 70 ? 'var(--yellow)' : 'var(--green)'}">${pct}%</span>
+            <button class="btn-icon" data-tip="Edit" onclick="openBudgetModal('${b.id}')">✏️</button>
+            <button class="btn-icon" data-tip="Delete" onclick="deleteBudget('${b.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${fillClass}" style="width:${barPct}%"></div>
+        </div>
+        ${b.spent > b.budget ? `<div style="font-size:.75rem;color:var(--red);margin-top:4px;">⚠️ Overspent by ₹${(b.spent - b.budget).toLocaleString('en-IN')}</div>` : ''}
+      </div>`;
+  }).join('<hr style="border-color:var(--border);margin:4px 0;">');
+
+  // Summary row
+  const tot = state.budget.reduce((a,b) => ({ budget: a.budget + b.budget, spent: a.spent + b.spent }), { budget: 0, spent: 0 });
+  const totPct = Math.round((tot.spent / tot.budget) * 100);
+  el.innerHTML += `
+    <div style="margin-top:20px;padding:16px;background:var(--surface);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:700;font-size:.95rem;">📊 Overall Budget</span>
+      <span style="font-size:.9rem;color:var(--text2);">₹${tot.spent.toLocaleString('en-IN')} / ₹${tot.budget.toLocaleString('en-IN')}</span>
+      <span style="font-weight:800;font-size:1.1rem;color:${tot.spent > tot.budget ? 'var(--red)' : totPct >= 80 ? 'var(--yellow)' : 'var(--green)'};">${totPct}%</span>
+    </div>`;
+
+  // Charts
+  renderBudgetCharts();
+}
+
+function renderBudgetCharts() {
+  const textColor = document.documentElement.dataset.theme === 'light' ? '#1a202c' : '#e6edf3';
+  const gridColor = document.documentElement.dataset.theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const bgColor = document.documentElement.dataset.theme === 'light' ? '#ffffff' : '#161b22';
+
+  destroyChart('chart-budget-donut');
+  const dCtx = document.getElementById('chart-budget-donut').getContext('2d');
+  const colors = ['#58a6ff','#3fb950','#f85149','#bc8cff','#fb8500'];
+  charts['chart-budget-donut'] = new Chart(dCtx, {
+    type: 'doughnut',
+    data: {
+      labels: state.budget.map(b => b.category),
+      datasets: [{
+        data: state.budget.map(b => b.spent),
+        backgroundColor: colors.slice(0,state.budget.length),
+        borderColor: bgColor,
+        borderWidth: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: textColor, font: { size: 11 }, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ` ₹${ctx.raw.toLocaleString('en-IN')}` } }
+      },
+      cutout: '60%',
+    }
+  });
+
+  destroyChart('chart-budget-bar');
+  const bCtx = document.getElementById('chart-budget-bar').getContext('2d');
+  charts['chart-budget-bar'] = new Chart(bCtx, {
+    type: 'bar',
+    data: {
+      labels: state.budget.map(b => b.category),
+      datasets: [
+        { label: 'Budget', data: state.budget.map(b => b.budget), backgroundColor: 'rgba(88,166,255,0.3)', borderColor: '#58a6ff', borderWidth: 2, borderRadius: 6 },
+        { label: 'Spent', data: state.budget.map(b => b.spent), backgroundColor: state.budget.map(b => b.spent > b.budget ? 'rgba(248,81,73,0.7)' : 'rgba(63,185,80,0.7)'), borderColor: state.budget.map(b => b.spent > b.budget ? '#f85149' : '#3fb950'), borderWidth: 2, borderRadius: 6 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: textColor, font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: gridColor } }
+      }
+    }
+  });
+}
+
+function openBudgetModal(id) {
+  editId.budget = id || null;
+  const b = id ? state.budget.find(x => x.id === id) : null;
+  document.getElementById('modal-budget-title').textContent = b ? 'Edit Category' : 'Add Budget Category';
+  document.getElementById('bud-cat').value = b ? b.category : '';
+  document.getElementById('bud-amount').value = b ? b.budget : '';
+  document.getElementById('bud-spent').value = b ? b.spent : '';
+  openModal('modal-budget');
+}
+
+function saveBudget() {
+  const cat = document.getElementById('bud-cat').value.trim();
+  if (!cat) { alert('Enter a category name.'); return; }
+  const data = {
+    category: cat,
+    budget: parseFloat(document.getElementById('bud-amount').value) || 0,
+    spent: parseFloat(document.getElementById('bud-spent').value) || 0,
+  };
+  if (editId.budget) {
+    const idx = state.budget.findIndex(x => x.id === editId.budget);
+    if (idx >= 0) state.budget[idx] = { ...state.budget[idx], ...data };
+  } else {
+    state.budget.push({ id: uid(), ...data });
+  }
+  saveState();
+  closeModal('modal-budget');
+  renderBudget();
+  updateBadges();
+}
+
+function deleteBudget(id) {
+  if (!confirm('Delete this category?')) return;
+  state.budget = state.budget.filter(b => b.id !== id);
+  saveState();
+  renderBudget();
+  updateBadges();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HEALTH
+// ════════════════════════════════════════════════════════════════
+function renderHealth() {
+  // Today's progress cards
+  const todayEl = document.getElementById('health-today-progress');
+  todayEl.innerHTML = state.health.map(h => {
+    const pct = Math.min(Math.round((h.current / h.target) * 100), 100);
+    const fillClass = pct >= 100 ? 'pf-green' : pct >= 60 ? 'pf-blue' : 'pf-yellow';
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:600;font-size:.88rem;">${h.icon} ${h.name}</span>
+          <span style="font-size:.82rem;color:var(--text2);">${h.current} / ${h.target} ${h.unit}</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ${fillClass}" style="width:${pct}%;"></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:3px;">${pct}% complete · 🔥 ${h.streak} day streak</div>
+      </div>`;
+  }).join('');
+
+  // Goal cards
+  const goalEl = document.getElementById('health-goals-list');
+  goalEl.innerHTML = '<div class="section-title" style="margin-bottom:14px;">🎯 Health Goals</div>' +
+    state.health.map(h => {
+      const pct = Math.min(Math.round((h.current / h.target) * 100), 100);
+      const steps = Array.from({ length: h.target }, (_,i) => i < h.current);
+      const isGoal = pct >= 100;
+      return `
+        <div class="health-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+            <div>
+              <div class="health-goal-name">${h.icon} ${h.name}</div>
+              <div class="health-streak">🔥 ${h.streak} day streak</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              ${isGoal ? '<span class="badge badge-green">🎯 Goal Met!</span>' : ''}
+              <button class="btn-icon" onclick="openHealthModal('${h.id}')">✏️</button>
+              <button class="btn-icon" onclick="deleteHealth('${h.id}')">🗑️</button>
+            </div>
+          </div>
+          <div style="font-size:.85rem;color:var(--text2);margin-bottom:12px;">Target: ${h.target} ${h.unit}/day &nbsp;·&nbsp; Today: ${h.current} ${h.unit}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;">
+            ${h.unit === 'glasses' || h.unit === 'hours' || h.unit === 'mins' ?
+              Array.from({length: Math.min(h.target, 12)}, (_,i) => `<div style="width:28px;height:28px;border-radius:6px;background:${i < h.current ? 'var(--green)' : 'var(--bg3)'};border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;">${i < h.current ? '✓' : ''}</div>`).join('')
+              : ''}
+          </div>
+          <div style="margin-bottom:10px;">
+            <div class="progress-bar" style="height:12px;">
+              <div class="progress-fill ${pct>=100?'pf-green':pct>=60?'pf-blue':'pf-yellow'}" style="width:${pct}%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-top:4px;">
+              <span>0</span><span>${h.target} ${h.unit}</span>
+            </div>
+          </div>
+          <div class="health-log-btn">
+            <span style="font-size:.8rem;color:var(--text2);align-self:center;">Log:</span>
+            ${[1,2,3,5].map(n => `<button class="unit-btn ${h.current >= n ? 'active' : ''}" onclick="logHealth('${h.id}',${n})">+${n}</button>`).join('')}
+            <button class="unit-btn" onclick="resetHealth('${h.id}')">Reset</button>
+          </div>
+        </div>`;
+    }).join('');
+
+  renderHealthChart();
+}
+
+function renderHealthChart() {
+  const textColor = document.documentElement.dataset.theme === 'light' ? '#1a202c' : '#e6edf3';
+  const gridColor = document.documentElement.dataset.theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  destroyChart('chart-health');
+  const ctx = document.getElementById('chart-health').getContext('2d');
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const colors = ['#58a6ff','#3fb950','#d29922','#bc8cff'];
+  charts['chart-health'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: state.health.map((h,i) => ({
+        label: `${h.icon} ${h.name}`,
+        data: h.logs.map(v => Math.round((v / h.target) * 100)),
+        borderColor: colors[i % colors.length],
+        backgroundColor: colors[i % colors.length] + '22',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.4,
+        fill: false,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: textColor, font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: textColor }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor, callback: v => v + '%' }, grid: { color: gridColor }, min: 0, max: 110 }
+      }
+    }
+  });
+}
+
+function logHealth(id, amount) {
+  const h = state.health.find(x => x.id === id);
+  if (!h) return;
+  h.current = Math.min(h.current + amount, h.target * 2);
+  if (h.current >= h.target) h.streak = (h.streak || 0) + 1;
+  h.logs[6] = h.current;
+  saveState();
+  renderHealth();
+}
+
+function resetHealth(id) {
+  const h = state.health.find(x => x.id === id);
+  if (!h) return;
+  h.current = 0;
+  h.logs[6] = 0;
+  saveState();
+  renderHealth();
+}
+
+function openHealthModal(id) {
+  editId.health = id || null;
+  const h = id ? state.health.find(x => x.id === id) : null;
+  document.getElementById('modal-health-title').textContent = h ? 'Edit Goal' : 'Add Health Goal';
+  document.getElementById('h-name').value = h ? h.name : '';
+  document.getElementById('h-target').value = h ? h.target : '';
+  document.getElementById('h-current').value = h ? h.current : '';
+  document.getElementById('h-unit').value = h ? h.unit : '';
+  document.getElementById('h-icon').value = h ? h.icon : '';
+  openModal('modal-health');
+}
+
+function saveHealth() {
+  const name = document.getElementById('h-name').value.trim();
+  if (!name) { alert('Enter a goal name.'); return; }
+  const data = {
+    name,
+    target: parseFloat(document.getElementById('h-target').value) || 1,
+    current: parseFloat(document.getElementById('h-current').value) || 0,
+    unit: document.getElementById('h-unit').value.trim() || 'units',
+    icon: document.getElementById('h-icon').value.trim() || '🎯',
+    streak: 0,
+    logs: [0,0,0,0,0,0,0],
+  };
+  if (editId.health) {
+    const idx = state.health.findIndex(x => x.id === editId.health);
+    if (idx >= 0) state.health[idx] = { ...state.health[idx], ...data };
+  } else {
+    state.health.push({ id: uid(), ...data });
+  }
+  saveState();
+  closeModal('modal-health');
+  renderHealth();
+}
+
+function deleteHealth(id) {
+  if (!confirm('Delete this health goal?')) return;
+  state.health = state.health.filter(h => h.id !== id);
+  saveState();
+  renderHealth();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AI ADVISOR
+// ════════════════════════════════════════════════════════════════
+function renderAI() {
+  // Summary cards
+  const overdueTasks = state.cleaning.filter(t => ['overdue','overdue-critical'].includes(getTaskStatus(t)));
+  const critBudget = state.budget.filter(b => b.spent > b.budget);
+  const warnBudget = state.budget.filter(b => { const p = b.spent/b.budget*100; return p>=70 && p<90 && b.spent<=b.budget; });
+  const highShop = state.shopping.filter(s => !s.bought && s.priority === 'high');
+  const healthLow = state.health.filter(h => (h.current/h.target)*100 < 60);
+  const totalPending = state.shopping.filter(s=>!s.bought).reduce((a,s)=>a+s.cost,0);
+
+  document.getElementById('ai-summary-cards').innerHTML = `
+    <div class="card" style="border-color:rgba(248,81,73,.3);">
+      <div class="card-title" style="margin-bottom:10px;">🚨 Overdue Tasks</div>
+      ${overdueTasks.length ? overdueTasks.map(t=>`<div style="font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border);">• ${t.name} <span style="color:var(--red);">(${statusLabel(t)})</span></div>`).join('') : '<div style="color:var(--green);font-size:.85rem;">✅ No overdue tasks</div>'}
+    </div>
+    <div class="card" style="border-color:rgba(210,153,34,.3);">
+      <div class="card-title" style="margin-bottom:10px;">💰 Budget Alerts</div>
+      ${critBudget.map(b=>`<div style="font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border);">🔴 ${b.category}: ₹${b.spent}/₹${b.budget}</div>`).join('')}
+      ${warnBudget.map(b=>`<div style="font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border);">🟡 ${b.category}: ${Math.round(b.spent/b.budget*100)}% used</div>`).join('')}
+      ${!critBudget.length && !warnBudget.length ? '<div style="color:var(--green);font-size:.85rem;">✅ All budgets on track</div>' : ''}
+    </div>
+    <div class="card" style="border-color:rgba(88,166,255,.3);">
+      <div class="card-title" style="margin-bottom:10px;">🌿 Health Status</div>
+      ${healthLow.map(h=>`<div style="font-size:.82rem;padding:4px 0;border-bottom:1px solid var(--border);">${h.icon} ${h.name}: ${h.current}/${h.target} ${h.unit}</div>`).join('')}
+      ${!healthLow.length ? '<div style="color:var(--green);font-size:.85rem;">✅ Health goals on track</div>' : ''}
+    </div>
+  `;
+
+  // Full AI report
+  const report = generateAIReport();
+  document.getElementById('ai-full-report').innerHTML = report;
+}
+
+function generateAIReport() {
+  const today = TODAY;
+  const overdueTasks = state.cleaning.filter(t => ['overdue','overdue-critical'].includes(getTaskStatus(t)));
+  const dueTodayTasks = state.cleaning.filter(t => getTaskStatus(t) === 'due-today');
+  const highShop = state.shopping.filter(s => !s.bought && s.priority === 'high');
+  const allPending = state.shopping.filter(s => !s.bought);
+  const pendingCost = allPending.reduce((a,s) => a + s.cost, 0);
+  const critBudget = state.budget.filter(b => b.spent > b.budget);
+  const warnBudget = state.budget.filter(b => { const p=b.spent/b.budget*100; return p>=70&&p<100; });
+  const goodBudget = state.budget.filter(b => (b.spent/b.budget*100)<70);
+  const totalBudget = state.budget.reduce((a,b)=>a+b.budget,0);
+  const totalSpent = state.budget.reduce((a,b)=>a+b.spent,0);
+  const healthAvg = Math.round(state.health.reduce((s,h)=>s+(h.current/h.target*100),0)/state.health.length);
+
+  let html = `<div style="display:flex;flex-direction:column;gap:16px;">`;
+
+  // Today's Plan
+  html += `<div class="ai-card">
+    <div class="ai-card-head">📋 Today's Recommended Plan (${today})</div>
+    <ul>`;
+  if (overdueTasks.length) html += overdueTasks.map(t=>`<li><strong>URGENT:</strong> ${t.name} — ${statusLabel(t)}</li>`).join('');
+  if (dueTodayTasks.length) html += dueTodayTasks.map(t=>`<li>Do today: ${t.name}</li>`).join('');
+  if (highShop.length) html += `<li>Buy: ${highShop.map(s=>s.name).join(', ')} (₹${highShop.reduce((a,s)=>a+s.cost,0)} total)</li>`;
+  if (!overdueTasks.length && !dueTodayTasks.length && !highShop.length) html += `<li>All priorities handled — take a rest day! 🎉</li>`;
+  html += `</ul></div>`;
+
+  // Shopping Intelligence
+  html += `<div class="ai-card">
+    <div class="ai-card-head">🛒 Shopping Intelligence</div>
+    <ul>
+      <li>Total pending: ₹${pendingCost} across ${allPending.length} items</li>
+      ${highShop.length ? `<li>High-priority unbought: ${highShop.map(s=>`${s.name} (₹${s.cost})`).join(', ')}</li>` : '<li>No urgent shopping items pending ✅</li>'}
+      ${state.shopping.filter(s=>!s.bought&&s.priority==='low').length ? `<li>Can skip low-priority items to save ₹${state.shopping.filter(s=>!s.bought&&s.priority==='low').reduce((a,s)=>a+s.cost,0)}</li>` : ''}
+    </ul>
+  </div>`;
+
+  // Budget Analysis
+  html += `<div class="ai-card">
+    <div class="ai-card-head">💰 Budget Analysis</div>
+    <ul>
+      <li>Overall: ₹${totalSpent.toLocaleString('en-IN')} / ₹${totalBudget.toLocaleString('en-IN')} (${Math.round(totalSpent/totalBudget*100)}% used)</li>
+      ${critBudget.map(b=>`<li>🔴 CRITICAL — ${b.category}: Overspent by ₹${(b.spent-b.budget).toLocaleString('en-IN')}</li>`).join('')}
+      ${warnBudget.map(b=>`<li>🟡 WARNING — ${b.category}: ${Math.round(b.spent/b.budget*100)}% of budget used</li>`).join('')}
+      ${goodBudget.map(b=>`<li>🟢 GOOD — ${b.category}: ${Math.round(b.spent/b.budget*100)}% used</li>`).join('')}
+    </ul>
+  </div>`;
+
+  // Health Habits
+  html += `<div class="ai-card">
+    <div class="ai-card-head">🌿 Health Habit Analysis</div>
+    <ul>
+      <li>Overall health score: ${healthAvg}%</li>
+      ${state.health.map(h => {
+        const pct = Math.round((h.current/h.target)*100);
+        const icon = pct >= 100 ? '🟢' : pct >= 60 ? '🟡' : '🔴';
+        return `<li>${icon} ${h.name}: ${h.current}/${h.target} ${h.unit} (${pct}%) — 🔥 ${h.streak} day streak</li>`;
+      }).join('')}
+    </ul>
+  </div>`;
+
+  // Smart Suggestions
+  html += `<div class="ai-card">
+    <div class="ai-card-head">💡 Smart Suggestions</div>
+    <ul>`;
+  if (overdueTasks.some(t => getTaskStatus(t) === 'overdue-critical'))
+    html += `<li>Schedule a 30-minute deep-clean session for <strong>${overdueTasks.filter(t=>getTaskStatus(t)==='overdue-critical').map(t=>t.name).join(' & ')}</strong> today</li>`;
+  if (critBudget.length)
+    html += `<li>Freeze spending in <strong>${critBudget.map(b=>b.category).join(', ')}</strong> for the rest of the month</li>`;
+  const sleepGoal = state.health.find(h=>h.name.toLowerCase().includes('sleep'));
+  if (sleepGoal && sleepGoal.current < sleepGoal.target)
+    html += `<li>Cleaning your bedroom (sheets, floors) can improve sleep quality — try tonight</li>`;
+  const waterGoal = state.health.find(h=>h.name.toLowerCase().includes('water'));
+  if (waterGoal && waterGoal.current < waterGoal.target)
+    html += `<li>Set hourly water reminders — you need ${waterGoal.target - waterGoal.current} more ${waterGoal.unit} today</li>`;
+  html += `</ul></div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  THEME
+// ════════════════════════════════════════════════════════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('homesync_theme', next);
+  // Re-render charts with correct colors
+  const current = document.querySelector('.page.active')?.id?.replace('page-', '');
+  if (current) renderPage(current);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MODALS
+// ════════════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ════════════════════════════════════════════════════════════════
+//  CHART DESTROY HELPER
+// ════════════════════════════════════════════════════════════════
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════
+(function init() {
+  // Restore theme
+  const saved = localStorage.getItem('homesync_theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+
+  // Date in topbar
+  const d = new Date(TODAY);
+  document.getElementById('page-date').textContent = d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  updateBadges();
+  renderDashboard();
+})();
+</script>
+</body>
+</html>

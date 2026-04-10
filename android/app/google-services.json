@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "860448358647",
+    "project_id": "bmr-helper",
+    "storage_bucket": "bmr-helper.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860448358647:android:9f77f543ff92fe65f093f2",
+        "android_client_info": {
+          "package_name": "com.bmr.helper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAEUgy6xXQ8b4NBtEYaH93D28DIENCP5M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
