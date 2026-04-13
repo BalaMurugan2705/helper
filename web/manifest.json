@@ -1,11 +1,11 @@
 {
-    "name": "HomeSync",
-    "short_name": "HomeSync",
+    "name": "domiq",
+    "short_name": "domiq",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0F0F1A",
     "theme_color": "#7C4DFF",
-    "description": "Smart Home Management App",
+    "description": "domiq",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
