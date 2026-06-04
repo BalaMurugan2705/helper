@@ -47,7 +47,17 @@ class _MainShellState extends ConsumerState<MainShell> {
       label: isAdmin ? "Wife's Wish List" : 'Wish List',
       path: '/wishlist',
     );
-    final navItems = [..._baseNavItems.take(7), wishItem, _baseNavItems.last];
+    final navItems = [
+      ..._baseNavItems.take(7),
+      wishItem,
+      _baseNavItems.last,
+      if (isAdmin)
+        const _NavItem(
+          icon: Icons.health_and_safety_rounded,
+          label: 'PCOS Guide',
+          path: '/pcos-guide',
+        ),
+    ];
     _activeNavItems = navItems;
 
     // Sync index from current route

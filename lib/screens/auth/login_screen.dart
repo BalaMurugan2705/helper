@@ -44,6 +44,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (credential.user != null) {
           final service = FirebaseService(credential.user!.uid);
           await service.saveUserProfile(credential.user!.email ?? '');
+      // service.seedDefaultCleaningTasks();
+      //  service.seedDefaultShoppingItems();
         }
       } else {
         final credential = await auth.signUp(

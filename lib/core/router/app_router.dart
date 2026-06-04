@@ -14,6 +14,7 @@ import '../../screens/expenses/expense_screen.dart';
 import '../../screens/food/food_tracker_screen.dart';
 import '../../screens/settings/notification_settings_screen.dart';
 import '../../screens/wishlist/wishlist_screen.dart';
+import '../../screens/pcos_guide/pcos_guide_screen.dart';
 
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
@@ -112,6 +113,12 @@ final appRouter = GoRouter(
           path: '/settings',
           pageBuilder: (context, state) => const MaterialPage(
             child: NotificationSettingsScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/pcos-guide',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: PcosGuideScreen(),
           ),
         ),
       ],
