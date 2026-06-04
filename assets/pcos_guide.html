@@ -1,0 +1,209 @@
+
+<style>
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem;padding-top:1rem}
+  .tab{padding:8px 16px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+  .tab.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+  .section{display:none}.section.active{display:block}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.5rem}
+  .card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px}
+  .card h4{margin:0 0 6px;font-size:13px;font-weight:500;color:var(--color-text-primary)}
+  .card p{margin:0;font-size:12px;color:var(--color-text-secondary);line-height:1.5}
+  .badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-bottom:6px}
+  .g{background:#EAF3DE;color:#3B6D11}.r{background:#FCEBEB;color:#A32D2D}.a{background:#FAEEDA;color:#854F0B}.b{background:#E6F1FB;color:#185FA5}
+  .section-title{font-size:15px;font-weight:500;color:var(--color-text-primary);margin:0 0 12px}
+  .dish-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:1.5rem}
+  .dish{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;font-size:13px;color:var(--color-text-primary);display:flex;align-items:start;gap:8px}
+  .dish-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .avoid-item{background:var(--color-background-primary);border:0.5px solid #F09595;border-radius:var(--border-radius-md);padding:10px 12px;font-size:13px;color:var(--color-text-primary);margin-bottom:6px}
+  .routine-block{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:10px}
+  .routine-block h4{margin:0 0 8px;font-size:13px;font-weight:500}
+  .routine-block ul{margin:0;padding-left:16px;font-size:12px;color:var(--color-text-secondary);line-height:1.8}
+  .tip-box{background:var(--color-background-secondary);border-left:3px solid #1D9E75;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 14px;margin-bottom:8px;font-size:13px;color:var(--color-text-primary);line-height:1.6}
+  h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+</style>
+
+<h2 class="sr-only">Complete PCOS guide: meals, gym routine, foods to avoid, and partner support tips</h2>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('meals',this)">Meals (50+)</button>
+  <button class="tab" onclick="show('gym',this)">Gym Routine</button>
+  <button class="tab" onclick="show('avoid',this)">Foods to Avoid</button>
+  <button class="tab" onclick="show('support',this)">Support Her</button>
+  <button class="tab" onclick="show('daily',this)">Daily Routine</button>
+</div>
+
+<div id="meals" class="section active">
+  <p class="section-title">Breakfast</p>
+  <div class="dish-grid">
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Vegetable oats upma with flaxseed</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Ragi dosa with coconut chutney</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Moong dal chilla with mint chutney</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Boiled eggs + sautéed vegetables</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Greek yogurt with berries & seeds</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Whole wheat dosa with vegetable filling</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Paneer bhurji with roti</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Chia seed pudding with almond milk</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Oats porridge with cinnamon & walnuts</div>
+    <div class="dish"><div class="dish-dot" style="background:#1D9E75"></div>Idli with sambar (no rice idli — ragi/oat)</div>
+  </div>
+
+  <p class="section-title">Lunch</p>
+  <div class="dish-grid">
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Brown rice + dal + mixed sabzi</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Quinoa pulao with vegetables</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Rajma with jowar roti</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Palak paneer + 1 multigrain roti</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Grilled chicken + salad + lentil soup</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Methi thepla with low-fat curd</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Mung bean salad with lemon dressing</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Baingan bharta + brown rice</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Chickpea curry + quinoa</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Tuna / grilled fish + vegetables</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Soya chunks curry + millets</div>
+    <div class="dish"><div class="dish-dot" style="background:#185FA5"></div>Lentil soup + multigrain bread</div>
+  </div>
+
+  <p class="section-title">Dinner</p>
+  <div class="dish-grid">
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Grilled chicken/fish + stir-fried veggies</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Vegetable daliya (broken wheat)</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Egg curry + 1 roti (no rice at night)</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Paneer tikka + salad</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Tofu stir-fry with quinoa</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Moong dal khichdi (light version)</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Zucchini soup + whole wheat toast</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Masoor dal + 1 jowar roti</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Baked salmon / fish with vegetables</div>
+    <div class="dish"><div class="dish-dot" style="background:#534AB7"></div>Mushroom stir-fry with millets</div>
+  </div>
+
+  <p class="section-title">Snacks & Sides</p>
+  <div class="dish-grid">
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Handful of almonds + walnuts</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Roasted makhana (fox nuts)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Apple + peanut butter (small)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Hummus + cucumber sticks</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Sprouts chaat (no sev)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Boiled egg + black pepper</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Coconut water (1 glass)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Flaxseed & pumpkin seed mix</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Low-sugar smoothie (berries + spinach)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Curd with jeera powder</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Roasted chana (handful)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Sliced guava or papaya</div>
+  </div>
+
+  <div class="tip-box">Spices that help: cinnamon (improves insulin sensitivity), fenugreek (methi), turmeric, and ginger — add to everyday cooking.</div>
+  <div class="tip-box">Eat every 3–4 hours. Never skip breakfast. Keep dinner light and early (before 8 PM).</div>
+</div>
+
+<div id="gym" class="section">
+  <div class="grid">
+    <div class="card"><span class="badge g">Best</span><h4>Strength Training</h4><p>Reduces insulin resistance. 3x/week — squats, deadlifts, lunges, rows. Builds muscle = burns fat at rest.</p></div>
+    <div class="card"><span class="badge g">Best</span><h4>HIIT (2x/week)</h4><p>Short bursts: 20 sec on / 40 sec off × 10 rounds. Powerful for hormonal balance. Keep sessions under 30 min.</p></div>
+    <div class="card"><span class="badge b">Good</span><h4>Walking</h4><p>Brisk 30 min walk daily — especially after meals. Lowers cortisol and helps with blood sugar spikes.</p></div>
+    <div class="card"><span class="badge b">Good</span><h4>Yoga</h4><p>1–2x/week. Poses: Supta Baddha Konasana, Butterfly, Child's Pose. Reduces stress hormones (cortisol).</p></div>
+    <div class="card"><span class="badge a">Moderate</span><h4>Cycling / Swimming</h4><p>Low-impact cardio. 45 min sessions. Good joint health, low stress on adrenals.</p></div>
+    <div class="card"><span class="badge r">Avoid</span><h4>Excessive Cardio</h4><p>Long daily cardio raises cortisol, worsening PCOS. No 90+ min cardio sessions.</p></div>
+  </div>
+
+  <p class="section-title">Weekly Plan</p>
+  <div class="routine-block">
+    <h4>Monday — Strength (Lower Body)</h4>
+    <ul><li>Squats 3×12, Lunges 3×10, Leg press, Glute bridges, Calf raises</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Tuesday — HIIT + Core</h4>
+    <ul><li>10 min HIIT circuit, Plank 3×45s, Dead bugs, Bicycle crunches, 20 min brisk walk</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Wednesday — Active Recovery</h4>
+    <ul><li>30 min yoga / stretching, Light walk, Focus on breathing exercises</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Thursday — Strength (Upper Body)</h4>
+    <ul><li>Dumbbell rows, Shoulder press, Chest press, Lat pulldowns, Tricep dips</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Friday — HIIT or Cycling</h4>
+    <ul><li>20 min HIIT or 40 min cycling, Followed by 10 min stretching</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Saturday — Full Body Strength</h4>
+    <ul><li>Deadlifts, Rows, Squats combo, Core work, End with 20 min walk</li></ul>
+  </div>
+  <div class="routine-block">
+    <h4>Sunday — Rest / Light Yoga</h4>
+    <ul><li>Restorative yoga, Breathing, Meditative walk — no gym</li></ul>
+  </div>
+
+  <div class="tip-box">Post-workout nutrition matters: protein + complex carb within 30–45 min (e.g. eggs + fruit, or whey + banana).</div>
+  <div class="tip-box">Sleep before 10:30 PM — poor sleep spikes cortisol and androgens, worsening PCOS symptoms.</div>
+</div>
+
+<div id="avoid" class="section">
+  <p class="section-title">Foods to Strictly Avoid</p>
+  <div class="avoid-item"><strong>White rice, maida (refined flour), white bread</strong> — spike blood sugar rapidly, worsen insulin resistance</div>
+  <div class="avoid-item"><strong>Sugary drinks & packaged juices</strong> — massive glucose spikes; use whole fruit instead</div>
+  <div class="avoid-item"><strong>Deep fried foods</strong> — trans fats worsen inflammation and hormone disruption</div>
+  <div class="avoid-item"><strong>Processed & packaged snacks</strong> — chips, biscuits, instant noodles, crackers</div>
+  <div class="avoid-item"><strong>Excess dairy</strong> — full-fat milk, paneer daily may raise IGF-1 (insulin-like growth factor). Use in moderation.</div>
+  <div class="avoid-item"><strong>Red meat (excess)</strong> — especially processed meats. Max 1–2x/week if at all</div>
+  <div class="avoid-item"><strong>Alcohol</strong> — disrupts liver function, estrogen metabolism, and blood sugar</div>
+  <div class="avoid-item"><strong>Excess caffeine</strong> — >2 cups/day raises cortisol. Switch partially to green tea</div>
+  <div class="avoid-item"><strong>High-sugar fruits in excess</strong> — mango, banana, grapes, chikoo (eat small portions, pair with protein)</div>
+  <div class="avoid-item"><strong>Soy in excess</strong> — contains phytoestrogens; small amounts ok but not daily soya products</div>
+  <div class="avoid-item"><strong>Hydrogenated vegetable oils</strong> — vanaspati, margarine, partially hydrogenated fats</div>
+
+  <p class="section-title" style="margin-top:1.5rem">Limit (Not Eliminate)</p>
+  <div class="dish-grid">
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>White rice (max 1 small serving/day)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Potato (avoid fried; boiled ok rarely)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Sweetened curd / flavored yogurt</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Fruit juices (even "natural")</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Coconut oil (small amounts ok)</div>
+    <div class="dish"><div class="dish-dot" style="background:#BA7517"></div>Salt (excess worsens bloating)</div>
+  </div>
+</div>
+
+<div id="support" class="section">
+  <p class="section-title">What You Can Do as Her Partner</p>
+  <div class="grid">
+    <div class="card"><span class="badge g">Nutrition</span><h4>Eat the same food</h4><p>Don't eat junk at home. If she's avoiding white rice, you avoid it too at shared meals. It makes a huge difference.</p></div>
+    <div class="card"><span class="badge g">Gym</span><h4>Train together</h4><p>Having a gym partner = higher consistency. Spot her lifts, do HIIT together, and celebrate small wins.</p></div>
+    <div class="card"><span class="badge b">Emotional</span><h4>Understand the symptoms</h4><p>Mood swings, fatigue, and irregular periods are hormonal — not personal. Be patient, not dismissive.</p></div>
+    <div class="card"><span class="badge b">Emotional</span><h4>Never comment on weight</h4><p>PCOS causes weight retention even with effort. Acknowledge her hard work, not the number on the scale.</p></div>
+    <div class="card"><span class="badge a">Practical</span><h4>Help with meal prep</h4><p>Sunday meal prep together — cook dals, cut veggies, portion snacks. Halves her effort during weekdays.</p></div>
+    <div class="card"><span class="badge a">Practical</span><h4>Track with her</h4><p>Use apps like MyFitnessPal or Flo together. Knowing her cycle phases helps plan gym intensity.</p></div>
+    <div class="card"><span class="badge b">Health</span><h4>Doctor appointments</h4><p>Go with her to gynecologist/endocrinologist visits. Shows you take it seriously and helps you understand treatment plans.</p></div>
+    <div class="card"><span class="badge g">Sleep</span><h4>Protect her sleep</h4><p>Sleep is medicine for PCOS. Keep consistent sleep times. Avoid late-night screen time together.</p></div>
+  </div>
+
+  <div class="tip-box">PCOS is a marathon, not a sprint. Results (regular periods, reduced symptoms) take 3–6 months of consistent lifestyle change. Celebrate every small win.</div>
+  <div class="tip-box">Stress is a major PCOS trigger. Help reduce her stress: share household load, plan occasional low-key outings, and be her calm when she's overwhelmed.</div>
+  <div class="tip-box">Consider a registered dietitian (RD) who specializes in PCOS + a gynecologist/endocrinologist for medical management (metformin, inositol, etc.).</div>
+</div>
+
+<div id="daily" class="section">
+  <p class="section-title">Ideal Daily Routine for PCOS</p>
+  <div class="routine-block"><h4>6:00–6:30 AM — Wake up</h4><ul><li>1 glass warm water with cinnamon + lemon</li><li>5 min breathing / light stretching</li><li>Do NOT skip breakfast</li></ul></div>
+  <div class="routine-block"><h4>7:00–8:00 AM — Breakfast</h4><ul><li>High protein, low GI breakfast within 1 hour of waking</li><li>Take prescribed supplements if any (Inositol, Vitamin D, Iron)</li></ul></div>
+  <div class="routine-block"><h4>10:00–10:30 AM — Mid-morning snack</h4><ul><li>Nuts, seeds, or fruit (low sugar)</li><li>Green tea instead of chai</li></ul></div>
+  <div class="routine-block"><h4>1:00–1:30 PM — Lunch</h4><ul><li>Largest meal of the day</li><li>Protein + complex carb + vegetables</li><li>10 min walk post-lunch</li></ul></div>
+  <div class="routine-block"><h4>4:00–4:30 PM — Snack + Gym Prep</h4><ul><li>Light pre-workout snack: banana + peanut butter or boiled egg</li></ul></div>
+  <div class="routine-block"><h4>5:00–6:30 PM — Gym</h4><ul><li>Follow weekly plan (strength / HIIT / yoga)</li><li>Post-workout: protein + carb snack within 45 min</li></ul></div>
+  <div class="routine-block"><h4>7:30–8:00 PM — Dinner</h4><ul><li>Light dinner — protein + vegetables, minimal carbs</li><li>No screen eating — mindful meals help digestion and cortisol</li></ul></div>
+  <div class="routine-block"><h4>9:30–10:00 PM — Wind down</h4><ul><li>No screens 30 min before bed</li><li>Warm turmeric milk (low-fat) or herbal tea</li><li>Journal / light reading</li></ul></div>
+  <div class="routine-block"><h4>10:00–10:30 PM — Sleep</h4><ul><li>7–8 hours is non-negotiable for PCOS recovery</li><li>Dark, cool room. Consistent bedtime every day.</li></ul></div>
+
+  <div class="tip-box">Cycle-syncing workouts: during menstrual phase (Day 1–5) keep workouts gentle. Follicular/Ovulatory (Day 6–14) is when she'll feel strongest — good time for heavy lifts. Luteal (Day 15–28) reduce intensity, add yoga.</div>
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
