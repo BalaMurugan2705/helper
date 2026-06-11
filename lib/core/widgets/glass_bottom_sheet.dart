@@ -42,7 +42,7 @@ class _GlassSheet extends StatelessWidget {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xF5120E26),
+        color: AppColors.darkSurface.withValues(alpha: 0.97),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: AppColors.glassBorder),
       ),
