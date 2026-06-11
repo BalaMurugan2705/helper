@@ -18,9 +18,13 @@ class AppTheme {
   // Additional legacy aliases for screens not yet migrated.
   static const Color primaryPurple = AppColors.accentDashboard;
   static const Color accentTeal    = Color(0xFF6BA3C8);
+  // FIXME: light-palette aliases — render incorrectly on dark scaffold until
+  // login_screen.dart and dashboard_screen.dart are migrated in Tasks 11–12.
   static const Color blueGhost     = Color(0xFFE8F1F7);
   static const Color bluePale      = Color(0xFFC8DCE8);
   static const Color darkCard      = AppColors.darkSurface;
+  // FIXME: light-palette aliases — render incorrectly on dark scaffold until
+  // login_screen.dart and dashboard_screen.dart are migrated in Tasks 11–12.
   static const Color frostBorder   = Color(0xFFD0E2EE);
   static const Color frostMuted    = Color(0xFF6BA3C8);
   static const Color frostPanel    = Color(0xFFF8FAFB);
