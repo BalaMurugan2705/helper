@@ -25,6 +25,7 @@ class AppTextStyles {
     fontSize: 14, fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
   );
+  // no default color — caller must supply via .copyWith(color: accent)
   static TextStyle statDisplay = GoogleFonts.plusJakartaSans(
     fontSize: 28, fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
@@ -48,6 +49,7 @@ class AppTextStyles {
     color: AppColors.textSubtle,
     letterSpacing: 1.3, height: 1.0,
   );
+  // no default color — caller must supply via .copyWith(color: accent)
   static TextStyle labelAccent = GoogleFonts.outfit(
     fontSize: 10, fontWeight: FontWeight.w700,
     letterSpacing: 1.3, height: 1.0,
@@ -57,8 +59,7 @@ class AppTextStyles {
     color: AppColors.textSubtle,
   );
 
-  /// Returns [labelLarge] with text uppercased via `TextStyle`—
-  /// call `.copyWith(color: accent)` to tint.
+  /// Returns labelLarge tinted to [color]; pass the string uppercased by the caller.
   static TextStyle eyebrow({Color? color}) => labelLarge.copyWith(
     color: color ?? AppColors.textSubtle,
     letterSpacing: 1.3,
