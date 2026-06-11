@@ -1,244 +1,135 @@
+// lib/core/theme/app_theme.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
+import 'app_text_styles.dart';
 
 class AppTheme {
-  static const Color primaryPurple = Color(0xFF7C4DFF);
-  static const Color accentTeal = Color(0xFF00BFA5);
-  static const Color darkBg = Color(0xFF0F0F1A);
-  static const Color darkCard = Color(0xFF1A1A2E);
-  static const Color darkCardElevated = Color(0xFF252540);
-  static const Color lightBg = Color(0xFFF5F5FF);
-  static const Color lightCard = Color(0xFFFFFFFF);
+  // Keep legacy colour aliases so any screen not yet migrated still compiles.
+  static const Color primary      = AppColors.accentDashboard;
+  static const Color primaryDeep  = AppColors.darkSurface;
+  static const Color blueDeep     = AppColors.darkSurface;
+  static const Color blueMid      = AppColors.accentDashboard;
+  static const Color blueLight    = Color(0xFF6BA3C8);
+  static const Color rose         = AppColors.statusOverdue;
+  static const Color amber        = AppColors.statusPending;
+  static const Color emerald      = AppColors.statusDone;
+
+  // Additional legacy aliases for screens not yet migrated.
+  static const Color primaryPurple = AppColors.accentDashboard;
+  static const Color accentTeal    = Color(0xFF6BA3C8);
+  static const Color blueGhost     = Color(0xFFE8F1F7);
+  static const Color bluePale      = Color(0xFFC8DCE8);
+  static const Color darkCard      = AppColors.darkSurface;
+  static const Color frostBorder   = Color(0xFFD0E2EE);
+  static const Color frostMuted    = Color(0xFF6BA3C8);
+  static const Color frostPanel    = Color(0xFFF8FAFB);
+  static const Color frostText     = Color(0xFF0D2030);
 
   static ThemeData darkTheme() {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
       colorScheme: ColorScheme.dark(
-        primary: primaryPurple,
-        secondary: accentTeal,
-        surface: darkCard,
-        onPrimary: Colors.white,
+        primary:     AppColors.accentDashboard,
+        secondary:   AppColors.accentHealth,
+        surface:     AppColors.darkSurface,
+        onPrimary:   Colors.white,
         onSecondary: Colors.white,
-        onSurface: Colors.white,
-        error: const Color(0xFFCF6679),
-        tertiary: const Color(0xFFFF6D00),
+        onSurface:   AppColors.textPrimary,
+        error:       AppColors.statusOverdue,
       ),
-      scaffoldBackgroundColor: darkBg,
-      cardColor: darkCard,
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
-        bodyColor: Colors.white,
-        displayColor: Colors.white,
-      ),
+      scaffoldBackgroundColor: AppColors.darkBase,
+      cardColor:               AppColors.darkSurface,
+      textTheme: _buildTextTheme(base.textTheme),
       appBarTheme: AppBarTheme(
-        backgroundColor: darkCard,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
+        backgroundColor:        AppColors.darkSurface,
+        foregroundColor:        AppColors.textPrimary,
+        elevation:              0,
+        scrolledUnderElevation: 0,
+        centerTitle:            false,
+        titleTextStyle:         AppTextStyles.headlineMedium,
       ),
       cardTheme: CardThemeData(
-        color: darkCard,
+        color:     AppColors.glassCard,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.white.withOpacity(0.08)),
+        shape:     RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.glassBorder),
         ),
-        margin: const EdgeInsets.all(0),
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: darkCardElevated,
-        labelStyle: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        side: BorderSide.none,
+        margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: darkCardElevated,
+        filled:    true,
+        fillColor: AppColors.glassCard,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: AppColors.glassBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: AppColors.glassBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPurple, width: 1.5),
+          borderSide: BorderSide(color: AppColors.accentDashboard, width: 1.5),
         ),
-        labelStyle: const TextStyle(color: Colors.white54),
-        hintStyle: const TextStyle(color: Colors.white38),
+        labelStyle: AppTextStyles.labelLarge,
+        hintStyle:  AppTextStyles.bodyMedium.copyWith(color: AppColors.textSubtle),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primaryPurple,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.accentDashboard,
         foregroundColor: Colors.white,
-        elevation: 4,
-      ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: darkCard,
-        selectedIconTheme: const IconThemeData(color: primaryPurple),
-        unselectedIconTheme:
-            IconThemeData(color: Colors.white.withOpacity(0.5)),
-        selectedLabelTextStyle:
-            GoogleFonts.inter(color: primaryPurple, fontWeight: FontWeight.w600),
-        unselectedLabelTextStyle:
-            GoogleFonts.inter(color: Colors.white54),
-        indicatorColor: primaryPurple.withOpacity(0.15),
-      ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: darkCard,
-        selectedItemColor: primaryPurple,
-        unselectedItemColor: Colors.white38,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        selectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
+        elevation:       0,
       ),
       dividerTheme: DividerThemeData(
-        color: Colors.white.withOpacity(0.08),
+        color:     AppColors.glassBorder,
         thickness: 1,
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: primaryPurple,
-        linearTrackColor: Color(0xFF252540),
-      ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: darkCardElevated,
-        contentTextStyle: GoogleFonts.inter(color: Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        backgroundColor:  AppColors.darkSurface,
+        contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         behavior: SnackBarBehavior.floating,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: darkCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titleTextStyle: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
+        backgroundColor: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titleTextStyle:   AppTextStyles.headlineSmall,
+        contentTextStyle: AppTextStyles.bodyMedium,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accentDashboard,
+          foregroundColor: Colors.white,
+          elevation:       0,
+          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.glassCard,
+        labelStyle: AppTextStyles.labelSmall.copyWith(color: AppColors.textMuted),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: AppColors.glassBorder),
       ),
     );
   }
 
-  static ThemeData lightTheme() {
-    final base = ThemeData.light(useMaterial3: true);
+  static TextTheme _buildTextTheme(TextTheme base) {
     return base.copyWith(
-      colorScheme: ColorScheme.light(
-        primary: primaryPurple,
-        secondary: accentTeal,
-        surface: lightCard,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: const Color(0xFF1A1A2E),
-        error: const Color(0xFFB00020),
-        tertiary: const Color(0xFFFF6D00),
-      ),
-      scaffoldBackgroundColor: lightBg,
-      cardColor: lightCard,
-      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
-        bodyColor: const Color(0xFF1A1A2E),
-        displayColor: const Color(0xFF1A1A2E),
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: lightCard,
-        foregroundColor: const Color(0xFF1A1A2E),
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
-          color: const Color(0xFF1A1A2E),
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: lightCard,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.black.withOpacity(0.08)),
-        ),
-        margin: const EdgeInsets.all(0),
-      ),
-      chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFFEEEEFF),
-        labelStyle: GoogleFonts.inter(
-            color: const Color(0xFF1A1A2E), fontSize: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        side: BorderSide.none,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFFEEEEFF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPurple, width: 1.5),
-        ),
-        labelStyle: const TextStyle(color: Color(0xFF555577)),
-        hintStyle: const TextStyle(color: Color(0xFF999999)),
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primaryPurple,
-        foregroundColor: Colors.white,
-        elevation: 4,
-      ),
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: lightCard,
-        selectedIconTheme: const IconThemeData(color: primaryPurple),
-        unselectedIconTheme: const IconThemeData(color: Color(0xFF999999)),
-        selectedLabelTextStyle:
-            GoogleFonts.inter(color: primaryPurple, fontWeight: FontWeight.w600),
-        unselectedLabelTextStyle:
-            GoogleFonts.inter(color: const Color(0xFF999999)),
-        indicatorColor: primaryPurple.withOpacity(0.1),
-      ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: lightCard,
-        selectedItemColor: primaryPurple,
-        unselectedItemColor: const Color(0xFF999999),
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        selectedLabelStyle:
-            GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
-      ),
-      dividerTheme: DividerThemeData(
-        color: Colors.black.withOpacity(0.08),
-        thickness: 1,
-      ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: primaryPurple,
-        linearTrackColor: primaryPurple.withOpacity(0.1),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF1A1A2E),
-        contentTextStyle: GoogleFonts.inter(color: Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        behavior: SnackBarBehavior.floating,
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: lightCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titleTextStyle: GoogleFonts.inter(
-          color: const Color(0xFF1A1A2E),
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      displayLarge:   AppTextStyles.displayLarge,
+      headlineLarge:  AppTextStyles.headlineLarge,
+      headlineMedium: AppTextStyles.headlineMedium,
+      headlineSmall:  AppTextStyles.headlineSmall,
+      titleMedium:    AppTextStyles.titleMedium,
+      bodyLarge:      AppTextStyles.bodyLarge,
+      bodyMedium:     AppTextStyles.bodyMedium,
+      bodySmall:      AppTextStyles.bodySmall,
+      labelLarge:     AppTextStyles.labelLarge,
+      labelSmall:     AppTextStyles.labelSmall,
     );
   }
 }

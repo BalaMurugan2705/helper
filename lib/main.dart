@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
-import 'providers/providers.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -26,13 +25,12 @@ class HomeSyncApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'HomeSync',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(),
+      theme:     AppTheme.darkTheme(),
       darkTheme: AppTheme.darkTheme(),
-      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+      themeMode: ThemeMode.dark,
       routerConfig: appRouter,
     );
   }
