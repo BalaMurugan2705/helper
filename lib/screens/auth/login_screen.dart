@@ -108,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         // Ambient glow bottom-right
         Positioned(
           bottom: -80, right: -60,
-          child: _GlowBlob(color: AppColors.accentHealth, size: 280),
+          child: _GlowBlob(color: AppColors.accentPcos, size: 280),
         ),
         SafeArea(child: Center(
           child: SingleChildScrollView(
