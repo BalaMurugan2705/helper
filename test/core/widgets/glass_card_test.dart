@@ -16,7 +16,7 @@ void main() {
     expect(find.text('hello'), findsOneWidget);
   });
 
-  testWidgets('GlassCard with accent applies tinted border', (tester) async {
+  testWidgets('GlassCard with accent renders child', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

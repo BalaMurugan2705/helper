@@ -2,6 +2,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
+/// Frosted-glass surface container.
+///
+/// For blur effects, wrap with a [BackdropFilter] at the call site only where
+/// the background is sufficiently complex and frame budget allows.
 class GlassCard extends StatelessWidget {
   final Widget child;
   final Color? accent;
@@ -27,6 +31,7 @@ class GlassCard extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
+      clipBehavior: Clip.hardEdge,
       child: Container(
         decoration: BoxDecoration(
           color: bg,
