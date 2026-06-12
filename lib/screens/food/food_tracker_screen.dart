@@ -1,8 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/glass_tile.dart';
+import '../../core/widgets/glass_bottom_sheet.dart';
 import '../../models/food_entry.dart';
 import '../../providers/providers.dart';
 import '../../services/firebase_service.dart';
@@ -12,14 +16,13 @@ class FoodTrackerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
     final selectedDate = ref.watch(foodDateProvider);
     final entriesAsync = ref.watch(foodEntriesProvider(selectedDate));
     final goalAsync = ref.watch(calorieGoalProvider);
     final service = ref.watch(firebaseServiceProvider);
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.darkBase,
       body: SafeArea(
         child: Column(
           children: [
@@ -33,17 +36,19 @@ class FoodTrackerScreen extends ConsumerWidget {
                   date: selectedDate,
                 ),
                 loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                    const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                error: (e, _) => Center(
+                  child: Text('Error: $e', style: AppTextStyles.bodyMedium),
+                ),
               ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppTheme.primaryPurple,
+        backgroundColor: AppColors.accentFood,
         onPressed: () => _showAddFoodModal(context, selectedDate, service),
-        child: const Icon(Icons.add_rounded, color: Colors.white),
+        child: const Icon(Icons.add_rounded, color: Colors.black),
       ),
     );
   }
@@ -57,7 +62,6 @@ class _DateNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
     final now = DateTime.now();
     final isToday = _isSameDay(date, now);
 
@@ -67,15 +71,11 @@ class _DateNav extends ConsumerWidget {
         children: [
           Text(
             'Food Tracker',
-            style: GoogleFonts.inter(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: cs.onSurface,
-            ),
+            style: AppTextStyles.headlineMedium,
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.chevron_left_rounded),
+            icon: Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
             onPressed: () => ref.read(foodDateProvider.notifier).state =
                 date.subtract(const Duration(days: 1)),
           ),
@@ -96,15 +96,16 @@ class _DateNav extends ConsumerWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.primaryPurple.withOpacity(0.15),
+                color: AppColors.accentFood.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: AppColors.accentFood.withValues(alpha: 0.25)),
               ),
               child: Text(
                 _dateLabel(date, now),
-                style: GoogleFonts.inter(
-                  color: AppTheme.primaryPurple,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: AppColors.accentFood,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
@@ -112,7 +113,9 @@ class _DateNav extends ConsumerWidget {
           IconButton(
             icon: Icon(
               Icons.chevron_right_rounded,
-              color: isToday ? cs.onSurface.withOpacity(0.2) : null,
+              color: isToday
+                  ? AppColors.textSubtle
+                  : AppColors.textMuted,
             ),
             onPressed: isToday
                 ? null
@@ -166,6 +169,11 @@ class _FoodContent extends StatelessWidget {
     final totalCarbs = entries.fold(0.0, (s, e) => s + e.carbs);
     final totalFat = entries.fold(0.0, (s, e) => s + e.fat);
 
+    final remaining = (goal - totalCals).clamp(0.0, double.infinity);
+    final subtitle = totalCals > 0
+        ? '${totalCals.toInt()} kcal consumed · ${remaining.toInt()} remaining'
+        : 'Goal: ${goal.toInt()} kcal';
+
     final byMeal = <MealType, List<FoodEntry>>{};
     for (final e in entries) {
       byMeal.putIfAbsent(e.mealType, () => []).add(e);
@@ -175,13 +183,24 @@ class _FoodContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       child: Column(
         children: [
-          _CalorieSummaryCard(
-            consumed: totalCals,
-            goal: goal,
-            protein: totalProtein,
-            carbs: totalCarbs,
-            fat: totalFat,
-            service: service,
+          AuroraHero(
+            accent: AppColors.accentFood,
+            eyebrow: 'WELLNESS · FOOD',
+            title: 'Food Tracker',
+            subtitle: subtitle,
+          ),
+          const SizedBox(height: 16),
+          GlassCard(
+            accent: AppColors.accentFood,
+            padding: const EdgeInsets.all(20),
+            child: _CalorieSummaryContent(
+              consumed: totalCals,
+              goal: goal,
+              protein: totalProtein,
+              carbs: totalCarbs,
+              fat: totalFat,
+              service: service,
+            ),
           ),
           const SizedBox(height: 16),
           ...MealType.values.map(
@@ -198,9 +217,9 @@ class _FoodContent extends StatelessWidget {
   }
 }
 
-// ─── Calorie Summary Card ─────────────────────────────────────────
+// ─── Calorie Summary Content ──────────────────────────────────────
 
-class _CalorieSummaryCard extends StatelessWidget {
+class _CalorieSummaryContent extends StatelessWidget {
   final double consumed;
   final double goal;
   final double protein;
@@ -208,7 +227,7 @@ class _CalorieSummaryCard extends StatelessWidget {
   final double fat;
   final FirebaseService? service;
 
-  const _CalorieSummaryCard({
+  const _CalorieSummaryContent({
     required this.consumed,
     required this.goal,
     required this.protein,
@@ -219,131 +238,111 @@ class _CalorieSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final progress = goal > 0 ? (consumed / goal).clamp(0.0, 1.0) : 0.0;
     final isOver = consumed > goal;
     final remaining = (goal - consumed).clamp(0.0, double.infinity);
-    final ringColor = isOver ? Colors.red : AppTheme.primaryPurple;
+    final ringColor = isOver ? AppColors.statusOverdue : AppColors.accentFood;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Calorie ring
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CustomPaint(
-                      size: const Size(120, 120),
-                      painter: _CalorieRingPainter(
-                        progress: progress,
-                        ringColor: ringColor,
-                        bgColor: cs.onSurface.withOpacity(0.08),
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Calorie ring
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(120, 120),
+                    painter: _CalorieRingPainter(
+                      progress: progress,
+                      ringColor: ringColor,
+                      bgColor: AppColors.glassBorder,
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        consumed.toInt().toString(),
+                        style: AppTextStyles.statDisplay.copyWith(
+                          fontSize: 22,
+                          color: isOver
+                              ? AppColors.statusOverdue
+                              : AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          consumed.toInt().toString(),
-                          style: GoogleFonts.inter(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: isOver ? Colors.red : cs.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'kcal',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: cs.onSurface.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      Text(
+                        'kcal',
+                        style: AppTextStyles.bodySmall,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _statRow(
-                      cs,
-                      'Goal',
-                      '${goal.toInt()} kcal',
-                      onTap: service == null
-                          ? null
-                          : () => _showGoalEditor(context, service!, goal.toInt()),
-                    ),
-                    const SizedBox(height: 10),
-                    _statRow(
-                      cs,
-                      isOver ? 'Over by' : 'Remaining',
-                      '${isOver ? (consumed - goal).toInt() : remaining.toInt()} kcal',
-                      valueColor: isOver ? Colors.red : const Color(0xFF4CAF50),
-                    ),
-                    const SizedBox(height: 10),
-                    _statRow(
-                      cs,
-                      'Consumed',
-                      '${(progress * 100).toInt()}%',
-                      valueColor: ringColor,
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _statRow(
+                    'Goal',
+                    '${goal.toInt()} kcal',
+                    onTap: service == null
+                        ? null
+                        : () => _showGoalEditor(context, service!, goal.toInt()),
+                  ),
+                  const SizedBox(height: 10),
+                  _statRow(
+                    isOver ? 'Over by' : 'Remaining',
+                    '${isOver ? (consumed - goal).toInt() : remaining.toInt()} kcal',
+                    valueColor: isOver
+                        ? AppColors.statusOverdue
+                        : AppColors.statusDone,
+                  ),
+                  const SizedBox(height: 10),
+                  _statRow(
+                    'Consumed',
+                    '${(progress * 100).toInt()}%',
+                    valueColor: ringColor,
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _MacroBar(
-              cs: cs,
-              label: 'Protein',
-              current: protein,
-              target: 150,
-              color: const Color(0xFFFF5722)),
-          const SizedBox(height: 10),
-          _MacroBar(
-              cs: cs,
-              label: 'Carbs',
-              current: carbs,
-              target: 250,
-              color: const Color(0xFFFFC107)),
-          const SizedBox(height: 10),
-          _MacroBar(
-              cs: cs,
-              label: 'Fat',
-              current: fat,
-              target: 65,
-              color: const Color(0xFF2196F3)),
-        ],
-      ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _MacroBar(
+            label: 'Protein',
+            current: protein,
+            target: 150,
+            color: const Color(0xFFFF5722)),
+        const SizedBox(height: 10),
+        _MacroBar(
+            label: 'Carbs',
+            current: carbs,
+            target: 250,
+            color: const Color(0xFFFFC107)),
+        const SizedBox(height: 10),
+        _MacroBar(
+            label: 'Fat',
+            current: fat,
+            target: 65,
+            color: const Color(0xFF2196F3)),
+      ],
     );
   }
 
-  Widget _statRow(ColorScheme cs, String label, String value,
+  Widget _statRow(String label, String value,
       {VoidCallback? onTap, Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: cs.onSurface.withOpacity(0.5),
-          ),
-        ),
+        Text(label, style: AppTextStyles.bodySmall),
         GestureDetector(
           onTap: onTap,
           child: Row(
@@ -351,16 +350,15 @@ class _CalorieSummaryCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
+                style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: valueColor ?? cs.onSurface,
+                  color: valueColor ?? AppColors.textPrimary,
                 ),
               ),
               if (onTap != null) ...[
                 const SizedBox(width: 3),
                 Icon(Icons.edit_outlined,
-                    size: 11, color: cs.onSurface.withOpacity(0.35)),
+                    size: 11, color: AppColors.textSubtle),
               ],
             ],
           ),
@@ -374,13 +372,15 @@ class _CalorieSummaryCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Daily Calorie Goal',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        backgroundColor: AppColors.darkSurface,
+        title: Text('Daily Calorie Goal', style: AppTextStyles.headlineSmall),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
+          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             labelText: 'Calories (kcal)',
+            labelStyle: AppTextStyles.bodySmall,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
           autofocus: true,
@@ -388,11 +388,11 @@ class _CalorieSummaryCard extends StatelessWidget {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              child: Text('Cancel', style: AppTextStyles.bodyMedium)),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPurple,
-                foregroundColor: Colors.white),
+                backgroundColor: AppColors.accentFood,
+                foregroundColor: Colors.black),
             onPressed: () {
               final val = int.tryParse(ctrl.text.trim());
               if (val != null && val > 0) {
@@ -400,7 +400,9 @@ class _CalorieSummaryCard extends StatelessWidget {
                 Navigator.pop(ctx);
               }
             },
-            child: const Text('Save'),
+            child: Text('Save',
+                style: AppTextStyles.bodyMedium
+                    .copyWith(fontWeight: FontWeight.w700, color: Colors.black)),
           ),
         ],
       ),
@@ -409,14 +411,12 @@ class _CalorieSummaryCard extends StatelessWidget {
 }
 
 class _MacroBar extends StatelessWidget {
-  final ColorScheme cs;
   final String label;
   final double current;
   final double target;
   final Color color;
 
   const _MacroBar({
-    required this.cs,
     required this.label,
     required this.current,
     required this.target,
@@ -430,20 +430,14 @@ class _MacroBar extends StatelessWidget {
       children: [
         SizedBox(
           width: 52,
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: cs.onSurface.withOpacity(0.6),
-            ),
-          ),
+          child: Text(label, style: AppTextStyles.bodySmall),
         ),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: cs.onSurface.withOpacity(0.08),
+              backgroundColor: AppColors.glassBorder,
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 8,
             ),
@@ -454,10 +448,7 @@ class _MacroBar extends StatelessWidget {
           width: 72,
           child: Text(
             '${current.toInt()}g / ${target.toInt()}g',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: cs.onSurface.withOpacity(0.5),
-            ),
+            style: AppTextStyles.bodySmall,
             textAlign: TextAlign.right,
           ),
         ),
@@ -483,16 +474,12 @@ class _MealSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final totalCals = entries.fold(0.0, (s, e) => s + e.calories);
     final color = _mealColor(mealType);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return GlassCard(
+      padding: EdgeInsets.zero,
+      borderRadius: 16,
       child: Column(
         children: [
           InkWell(
@@ -502,15 +489,14 @@ class _MealSection extends StatelessWidget {
             onTap: () => _showAddFoodModal(context, date, service,
                 defaultMeal: mealType),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Container(
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
+                      color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(_mealIcon(mealType), color: color, size: 20),
@@ -518,33 +504,26 @@ class _MealSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     mealType.label,
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface,
-                    ),
+                    style: AppTextStyles.titleMedium,
                   ),
                   const Spacer(),
                   if (totalCals > 0)
                     Text(
                       '${totalCals.toInt()} kcal',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.5),
-                      ),
+                      style: AppTextStyles.bodySmall,
                     ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.add_circle_outline_rounded,
                     size: 20,
-                    color: AppTheme.primaryPurple.withOpacity(0.7),
+                    color: AppColors.accentFood.withValues(alpha: 0.7),
                   ),
                 ],
               ),
             ),
           ),
           if (entries.isNotEmpty) ...[
-            Divider(height: 1, color: cs.onSurface.withOpacity(0.08)),
+            Divider(height: 1, color: AppColors.glassBorder),
             ...entries.asMap().entries.map((mapEntry) {
               final isLast = mapEntry.key == entries.length - 1;
               return _FoodTile(
@@ -575,8 +554,11 @@ class _FoodTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final color = _mealColor(entry.mealType);
+
+    final macroSubtitle = (entry.protein > 0 || entry.carbs > 0 || entry.fat > 0)
+        ? 'P: ${entry.protein.toInt()}g  C: ${entry.carbs.toInt()}g  F: ${entry.fat.toInt()}g'
+        : null;
 
     return Dismissible(
       key: Key(entry.id),
@@ -585,29 +567,30 @@ class _FoodTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.12),
+          color: AppColors.statusOverdue.withValues(alpha: 0.12),
           borderRadius: isLast
               ? const BorderRadius.vertical(bottom: Radius.circular(16))
               : BorderRadius.zero,
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+        child: Icon(Icons.delete_outline_rounded, color: AppColors.statusOverdue),
       ),
       confirmDismiss: (_) async {
         return await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: Text('Remove entry?',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                backgroundColor: AppColors.darkSurface,
+                title: Text('Remove entry?', style: AppTextStyles.headlineSmall),
                 content: Text('Remove "${entry.name}"?',
-                    style: GoogleFonts.inter()),
+                    style: AppTextStyles.bodyMedium),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel')),
+                      child: Text('Cancel', style: AppTextStyles.bodyMedium)),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text('Remove',
-                        style: TextStyle(color: Colors.red)),
+                    child: Text('Remove',
+                        style: AppTextStyles.bodyMedium
+                            .copyWith(color: AppColors.statusOverdue)),
                   ),
                 ],
               ),
@@ -615,36 +598,19 @@ class _FoodTile extends StatelessWidget {
             false;
       },
       onDismissed: (_) => service?.deleteFoodEntry(entry.id),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        title: Text(
-          entry.name,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: cs.onSurface,
-          ),
-        ),
-        subtitle: (entry.protein > 0 || entry.carbs > 0 || entry.fat > 0)
-            ? Text(
-                'P: ${entry.protein.toInt()}g  C: ${entry.carbs.toInt()}g  F: ${entry.fat.toInt()}g',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: cs.onSurface.withOpacity(0.4),
-                ),
-              )
-            : null,
+      child: GlassTile(
+        dotColor: AppColors.accentFood,
+        title: entry.name,
+        subtitle: macroSubtitle,
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             '${entry.calories.toInt()} kcal',
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            style: AppTextStyles.labelSmall.copyWith(
               fontWeight: FontWeight.w600,
               color: color,
             ),
@@ -664,11 +630,10 @@ void _showAddFoodModal(
   MealType defaultMeal = MealType.breakfast,
 }) {
   if (service == null) return;
-  showModalBottomSheet(
+  showGlassSheet(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) => _AddFoodModal(
+    title: 'Add Food Entry',
+    content: _AddFoodForm(
       date: date,
       service: service,
       defaultMeal: defaultMeal,
@@ -676,22 +641,22 @@ void _showAddFoodModal(
   );
 }
 
-class _AddFoodModal extends StatefulWidget {
+class _AddFoodForm extends StatefulWidget {
   final DateTime date;
   final FirebaseService service;
   final MealType defaultMeal;
 
-  const _AddFoodModal({
+  const _AddFoodForm({
     required this.date,
     required this.service,
     required this.defaultMeal,
   });
 
   @override
-  State<_AddFoodModal> createState() => _AddFoodModalState();
+  State<_AddFoodForm> createState() => _AddFoodFormState();
 }
 
-class _AddFoodModalState extends State<_AddFoodModal> {
+class _AddFoodFormState extends State<_AddFoodForm> {
   final _nameCtrl = TextEditingController();
   final _calsCtrl = TextEditingController();
   final _proteinCtrl = TextEditingController();
@@ -717,135 +682,110 @@ class _AddFoodModalState extends State<_AddFoodModal> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.onSurface.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(2),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Meal type chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: MealType.values.map((mt) {
+              final selected = _selectedMeal == mt;
+              final color = _mealColor(mt);
+              return ChoiceChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_mealIcon(mt),
+                        size: 14,
+                        color: selected
+                            ? color
+                            : AppColors.textSubtle),
+                    const SizedBox(width: 4),
+                    Text(mt.label),
+                  ],
                 ),
-              ),
+                selected: selected,
+                onSelected: (_) => setState(() => _selectedMeal = mt),
+                selectedColor: color.withValues(alpha: 0.15),
+                labelStyle: AppTextStyles.bodySmall.copyWith(
+                  color: selected ? color : AppColors.textMuted,
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _nameCtrl,
+            textCapitalization: TextCapitalization.sentences,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              labelText: 'Food name *',
+              labelStyle: AppTextStyles.bodySmall,
+              prefixIcon: const Icon(Icons.restaurant_outlined),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            const SizedBox(height: 16),
-            Text(
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _calsCtrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              labelText: 'Calories (kcal) *',
+              labelStyle: AppTextStyles.bodySmall,
+              prefixIcon: const Icon(Icons.local_fire_department_outlined),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                  child: _macroField(
+                      _proteinCtrl, 'Protein', const Color(0xFFFF5722))),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _macroField(
+                      _carbsCtrl, 'Carbs', const Color(0xFFFFC107))),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: _macroField(
+                      _fatCtrl, 'Fat', const Color(0xFF2196F3))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Macros are optional',
+            style: AppTextStyles.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentFood,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            onPressed: _submit,
+            child: Text(
               'Add Food',
-              style: GoogleFonts.inter(
-                  fontSize: 18, fontWeight: FontWeight.w800),
+              style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w700, color: Colors.black),
             ),
-            const SizedBox(height: 16),
-            // Meal type chips
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: MealType.values.map((mt) {
-                final selected = _selectedMeal == mt;
-                final color = _mealColor(mt);
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_mealIcon(mt),
-                          size: 14,
-                          color: selected ? color : cs.onSurface.withOpacity(0.5)),
-                      const SizedBox(width: 4),
-                      Text(mt.label),
-                    ],
-                  ),
-                  selected: selected,
-                  onSelected: (_) => setState(() => _selectedMeal = mt),
-                  selectedColor: color.withOpacity(0.15),
-                  labelStyle: GoogleFonts.inter(
-                    color: selected ? color : cs.onSurface.withOpacity(0.6),
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: 13,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameCtrl,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: 'Food name *',
-                prefixIcon: const Icon(Icons.restaurant_outlined),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              style: GoogleFonts.inter(),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _calsCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'Calories (kcal) *',
-                prefixIcon: const Icon(Icons.local_fire_department_outlined),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              style: GoogleFonts.inter(),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                    child: _macroField(
-                        _proteinCtrl, 'Protein', const Color(0xFFFF5722))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: _macroField(
-                        _carbsCtrl, 'Carbs', const Color(0xFFFFC107))),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: _macroField(
-                        _fatCtrl, 'Fat', const Color(0xFF2196F3))),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Macros are optional',
-              style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: cs.onSurface.withOpacity(0.4)),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPurple,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
-              ),
-              onPressed: _submit,
-              child: Text(
-                'Add Food',
-                style: GoogleFonts.inter(
-                    fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
+          ),
+          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+        ],
       ),
     );
   }
@@ -856,9 +796,11 @@ class _AddFoodModalState extends State<_AddFoodModal> {
       controller: ctrl,
       keyboardType:
           const TextInputType.numberWithOptions(decimal: true),
+      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: '$label (g)',
-        labelStyle: TextStyle(fontSize: 12, color: color.withOpacity(0.8)),
+        labelStyle: AppTextStyles.bodySmall.copyWith(
+            color: color.withValues(alpha: 0.8)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
@@ -867,7 +809,6 @@ class _AddFoodModalState extends State<_AddFoodModal> {
           borderSide: BorderSide(color: color),
         ),
       ),
-      style: GoogleFonts.inter(fontSize: 13),
     );
   }
 
