@@ -54,6 +54,25 @@ final budgetProvider = StreamProvider<List<BudgetCategory>>((ref) {
   return service.budgetStream();
 });
 
+// Budget categories with spentAmount auto-calculated from this month's expenses.
+final budgetWithSpentProvider = Provider<AsyncValue<List<BudgetCategory>>>((ref) {
+  final byCategory = ref.watch(expenseByCategoryProvider);
+  return ref.watch(budgetProvider).whenData(
+    (cats) => cats
+        .map((c) => c.copyWith(spentAmount: byCategory[c.category] ?? 0.0))
+        .toList(),
+  );
+});
+
+// Category names from current-month budget (for expense category picker).
+final budgetCategoryNamesProvider = Provider<List<String>>((ref) {
+  return ref.watch(budgetProvider).when(
+    data: (cats) => cats.map((c) => c.category).toList(),
+    loading: () => [],
+    error: (_, __) => [],
+  );
+});
+
 // ─── Health Stream ────────────────────────────────────────────────
 
 final healthProvider = StreamProvider<List<HealthHabit>>((ref) {
@@ -202,7 +221,7 @@ final itemsToBuyCountProvider = Provider<int>((ref) {
 });
 
 final totalBudgetUsedProvider = Provider<double>((ref) {
-  return ref.watch(budgetProvider).when(
+  return ref.watch(budgetWithSpentProvider).when(
         data: (cats) {
           final totalBudget =
               cats.fold(0.0, (sum, c) => sum + c.budgetAmount);
@@ -237,7 +256,7 @@ final pendingShoppingCostProvider = Provider<double>((ref) {
 });
 
 final overBudgetCategoriesProvider = Provider<List<BudgetCategory>>((ref) {
-  return ref.watch(budgetProvider).when(
+  return ref.watch(budgetWithSpentProvider).when(
         data: (cats) => cats.where((c) => c.isOverBudget).toList(),
         loading: () => [],
         error: (_, __) => [],

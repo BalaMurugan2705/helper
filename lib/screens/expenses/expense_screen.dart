@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:shimmer/shimmer.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/glass_tile.dart';
+import '../../core/widgets/glass_bottom_sheet.dart';
 import '../../models/expense.dart';
 import '../../providers/providers.dart';
 import '../../services/firebase_service.dart';
 
-// ─── Filter Enum ──────────────────────────────────────────────────
+// ─── Filter Providers ─────────────────────────────────────────────
 
-enum ExpensePeriod { week, month, all }
+enum _FilterMode { month, dateRange, week, all }
 
-final _periodProvider = StateProvider<ExpensePeriod>((ref) => ExpensePeriod.month);
+final _filterModeProvider =
+    StateProvider<_FilterMode>((ref) => _FilterMode.month);
+
+final _expenseMonthProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month);
+});
+
+final _dateFromProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, 1);
+});
+
+final _dateToProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+final _categoryFilterProvider = StateProvider<String?>((ref) => null);
 
 // ─── Main Screen ──────────────────────────────────────────────────
 
@@ -22,23 +40,16 @@ class ExpenseScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expensesAsync = ref.watch(expensesProvider);
-    final period = ref.watch(_periodProvider);
     final totalThisMonth = ref.watch(totalThisMonthProvider);
-    final categoryMap = ref.watch(expenseByCategoryProvider);
 
     return Scaffold(
       body: expensesAsync.when(
-        data: (all) {
-          final filtered = _filterExpenses(all, period);
-          return _ExpenseContent(
-            allExpenses: all,
-            filtered: filtered,
-            period: period,
-            totalThisMonth: totalThisMonth,
-            categoryMap: categoryMap,
-          );
-        },
-        loading: () => _loadingView(),
+        data: (all) => _ExpenseContent(
+          allExpenses: all,
+          totalThisMonth: totalThisMonth,
+        ),
+        loading: () =>
+            const Center(child: CircularProgressIndicator(strokeWidth: 2)),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -46,46 +57,7 @@ class ExpenseScreen extends ConsumerWidget {
             _showAddEditModal(context, ref.read(firebaseServiceProvider)!, null),
         icon: const Icon(Icons.add),
         label: const Text('Add Expense'),
-        backgroundColor: AppTheme.primaryPurple,
-      ),
-    );
-  }
-
-  List<Expense> _filterExpenses(List<Expense> all, ExpensePeriod period) {
-    final now = DateTime.now();
-    switch (period) {
-      case ExpensePeriod.week:
-        final weekAgo = now.subtract(const Duration(days: 7));
-        return all.where((e) => e.date.isAfter(weekAgo)).toList();
-      case ExpensePeriod.month:
-        return all
-            .where((e) => e.date.year == now.year && e.date.month == now.month)
-            .toList();
-      case ExpensePeriod.all:
-        return all;
-    }
-  }
-
-  Widget _loadingView() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: List.generate(
-          5,
-          (i) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Shimmer.fromColors(
-              baseColor: const Color(0xFF1A1A2E),
-              highlightColor: const Color(0xFF252540),
-              child: Container(
-                height: 80,
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-        ),
+        backgroundColor: AppColors.accentExpenses,
       ),
     );
   }
@@ -95,108 +67,408 @@ class ExpenseScreen extends ConsumerWidget {
 
 class _ExpenseContent extends ConsumerWidget {
   final List<Expense> allExpenses;
-  final List<Expense> filtered;
-  final ExpensePeriod period;
   final double totalThisMonth;
-  final Map<String, double> categoryMap;
 
   const _ExpenseContent({
     required this.allExpenses,
-    required this.filtered,
-    required this.period,
     required this.totalThisMonth,
-    required this.categoryMap,
   });
+
+  static const _monthLabels = [
+    'Jan','Feb','Mar','Apr','May','Jun',
+    'Jul','Aug','Sep','Oct','Nov','Dec',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final total = filtered.fold(0.0, (s, e) => s + e.amount);
-    final avgPerDay = _avgPerDay(filtered, period);
+    final mode          = ref.watch(_filterModeProvider);
+    final selectedMonth = ref.watch(_expenseMonthProvider);
+    final dateFrom      = ref.watch(_dateFromProvider);
+    final dateTo        = ref.watch(_dateToProvider);
+    final selectedCat   = ref.watch(_categoryFilterProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Expense Tracker',
-              style: GoogleFonts.inter(
-                  fontSize: 28, fontWeight: FontWeight.w800, color: cs.onSurface)),
-          const SizedBox(height: 16),
-          _buildSummaryCard(context, total, avgPerDay),
-          const SizedBox(height: 16),
-          _buildPeriodToggle(context, ref),
-          const SizedBox(height: 16),
-          if (filtered.isNotEmpty) ...[
-            _buildSpendingChart(context, filtered, period),
-            const SizedBox(height: 16),
-            _buildCategoryBreakdown(context, filtered),
-            const SizedBox(height: 16),
-          ],
-          _buildTransactionList(context, ref, filtered),
+    // Step 1 — apply date filter
+    final dateFiltered =
+        _applyDateFilter(allExpenses, mode, selectedMonth, dateFrom, dateTo);
+
+    // Step 2 — derive category list from date-filtered set
+    final categories = (dateFiltered.map((e) => e.category).toSet().toList()
+      ..sort());
+
+    // Step 3 — apply category filter
+    final filtered = selectedCat == null
+        ? dateFiltered
+        : dateFiltered.where((e) => e.category == selectedCat).toList();
+
+    final total     = filtered.fold(0.0, (s, e) => s + e.amount);
+    final avgPerDay = _avgPerDay(filtered, mode, selectedMonth, dateFrom, dateTo);
+
+    return Column(
+      children: [
+        AuroraHero(
+          accent: AppColors.accentExpenses,
+          eyebrow: 'FINANCE · EXPENSES',
+          title: 'Expenses',
+          subtitle: '₹${total.toStringAsFixed(0)} total',
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSummaryCard(context, total, avgPerDay),
+                const SizedBox(height: 16),
+                _buildFilters(context, ref, mode, selectedMonth, dateFrom, dateTo, categories, selectedCat),
+                const SizedBox(height: 16),
+                if (filtered.isNotEmpty) ...[
+                  _buildSpendingChart(context, filtered),
+                  const SizedBox(height: 16),
+                  _buildCategoryBreakdown(context, filtered),
+                  const SizedBox(height: 16),
+                ],
+                _buildTransactionList(context, ref, filtered),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────
+
+  List<Expense> _applyDateFilter(List<Expense> all, _FilterMode mode,
+      DateTime month, DateTime from, DateTime to) {
+    switch (mode) {
+      case _FilterMode.week:
+        final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+        return all.where((e) => e.date.isAfter(weekAgo)).toList();
+      case _FilterMode.month:
+        return all
+            .where((e) =>
+                e.date.year == month.year && e.date.month == month.month)
+            .toList();
+      case _FilterMode.dateRange:
+        final start = DateTime(from.year, from.month, from.day);
+        final end   = DateTime(to.year, to.month, to.day, 23, 59, 59);
+        return all
+            .where((e) =>
+                !e.date.isBefore(start) && !e.date.isAfter(end))
+            .toList();
+      case _FilterMode.all:
+        return all;
+    }
+  }
+
+  double _avgPerDay(List<Expense> expenses, _FilterMode mode,
+      DateTime selectedMonth, DateTime dateFrom, DateTime dateTo) {
+    if (expenses.isEmpty) return 0;
+    final now = DateTime.now();
+    int days;
+    switch (mode) {
+      case _FilterMode.week:
+        days = 7;
+      case _FilterMode.month:
+        final isCurrentMonth = selectedMonth.year == now.year &&
+            selectedMonth.month == now.month;
+        days = isCurrentMonth
+            ? now.day
+            : DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
+      case _FilterMode.dateRange:
+        days = dateTo.difference(dateFrom).inDays + 1;
+      case _FilterMode.all:
+        final oldest = expenses.last.date;
+        days = now.difference(oldest).inDays + 1;
+    }
+    return expenses.fold(0.0, (s, e) => s + e.amount) / days.clamp(1, 9999);
+  }
+
+  // ── Filter bar ─────────────────────────────────────────────────
+
+  Widget _buildFilters(
+    BuildContext context,
+    WidgetRef ref,
+    _FilterMode mode,
+    DateTime selectedMonth,
+    DateTime dateFrom,
+    DateTime dateTo,
+    List<String> categories,
+    String? selectedCat,
+  ) {
+    final now = DateTime.now();
+    final isCurrentMonth = selectedMonth.year == now.year &&
+        selectedMonth.month == now.month;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Mode toggle ────────────────────────────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: context.appColors.glassCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.appColors.glassBorder),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            children: _FilterMode.values.map((m) {
+              final labels = {
+                _FilterMode.month:     'Month',
+                _FilterMode.dateRange: 'Date Range',
+                _FilterMode.week:      'This Week',
+                _FilterMode.all:       'All Time',
+              };
+              final selected = m == mode;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(_filterModeProvider.notifier).state = m;
+                    ref.read(_categoryFilterProvider.notifier).state = null;
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.accentExpenses
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(
+                      labels[m]!,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w400,
+                        color: selected
+                            ? AppColors.textPrimary
+                            : context.appColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
+        // ── Month navigator ────────────────────────────────────
+        if (mode == _FilterMode.month) ...[
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded),
+                color: context.appColors.textMuted,
+                onPressed: () {
+                  final prev = DateTime(
+                      selectedMonth.year, selectedMonth.month - 1);
+                  ref.read(_expenseMonthProvider.notifier).state = prev;
+                  ref.read(_categoryFilterProvider.notifier).state = null;
+                },
+              ),
+              Text(
+                '${_monthLabels[selectedMonth.month - 1]} ${selectedMonth.year}',
+                style: AppTextStyles.titleMedium,
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.chevron_right_rounded,
+                  color: isCurrentMonth
+                      ? context.appColors.textSubtle
+                      : context.appColors.textMuted,
+                ),
+                onPressed: isCurrentMonth
+                    ? null
+                    : () {
+                        final next = DateTime(
+                            selectedMonth.year, selectedMonth.month + 1);
+                        ref.read(_expenseMonthProvider.notifier).state = next;
+                        ref.read(_categoryFilterProvider.notifier).state =
+                            null;
+                      },
+              ),
+            ],
+          ),
         ],
+
+        // ── Date range pickers ─────────────────────────────────
+        if (mode == _FilterMode.dateRange) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _datePicker(
+                  context: context,
+                  label: 'From',
+                  date: dateFrom,
+                  firstDate: DateTime(2020),
+                  lastDate: dateTo,
+                  onPicked: (d) {
+                    ref.read(_dateFromProvider.notifier).state = d;
+                    ref.read(_categoryFilterProvider.notifier).state = null;
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Icon(Icons.arrow_forward_rounded,
+                    size: 16, color: context.appColors.textMuted),
+              ),
+              Expanded(
+                child: _datePicker(
+                  context: context,
+                  label: 'To',
+                  date: dateTo,
+                  firstDate: dateFrom,
+                  lastDate: DateTime.now(),
+                  onPicked: (d) {
+                    ref.read(_dateToProvider.notifier).state = d;
+                    ref.read(_categoryFilterProvider.notifier).state = null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // ── Category chips ─────────────────────────────────────
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _catChip(context, 'All', selectedCat == null, () {
+                  ref.read(_categoryFilterProvider.notifier).state = null;
+                }),
+                ...categories.map((c) => _catChip(
+                      context,
+                      c,
+                      selectedCat == c,
+                      () {
+                        ref.read(_categoryFilterProvider.notifier).state =
+                            selectedCat == c ? null : c;
+                      },
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _catChip(BuildContext context, String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.accentExpenses.withValues(alpha: 0.18)
+              : context.appColors.glassCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color:
+                selected ? AppColors.accentExpenses : context.appColors.glassBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: selected
+                ? AppColors.accentExpenses
+                : context.appColors.textMuted,
+            fontWeight:
+                selected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
       ),
     );
   }
 
-  double _avgPerDay(List<Expense> expenses, ExpensePeriod period) {
-    if (expenses.isEmpty) return 0;
-    int days;
-    switch (period) {
-      case ExpensePeriod.week:
-        days = 7;
-        break;
-      case ExpensePeriod.month:
-        final now = DateTime.now();
-        days = now.day;
-        break;
-      case ExpensePeriod.all:
-        if (expenses.isEmpty) return 0;
-        final oldest = expenses.last.date;
-        days = DateTime.now().difference(oldest).inDays + 1;
-        break;
-    }
-    return expenses.fold(0.0, (s, e) => s + e.amount) / days;
+  Widget _datePicker({
+    required BuildContext context,
+    required String label,
+    required DateTime date,
+    required DateTime firstDate,
+    required DateTime lastDate,
+    required ValueChanged<DateTime> onPicked,
+  }) {
+    final d = _monthLabels[date.month - 1];
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date.isBefore(firstDate)
+              ? firstDate
+              : date.isAfter(lastDate)
+                  ? lastDate
+                  : date,
+          firstDate: firstDate,
+          lastDate: lastDate,
+        );
+        if (picked != null) onPicked(picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: context.appColors.glassCard,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.accentExpenses.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded,
+                size: 14, color: AppColors.accentExpenses),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textMuted, fontSize: 10)),
+                  Text('${date.day} $d ${date.year}',
+                      style: AppTextStyles.bodyMedium),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSummaryCard(
       BuildContext context, double total, double avgPerDay) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryPurple.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+    return GlassCard(
+      accent: AppColors.accentExpenses,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total Expenses',
-              style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
+          Text('Total Expenses', style: AppTextStyles.bodyMedium),
           const SizedBox(height: 4),
-          Text('₹${total.toStringAsFixed(0)}',
-              style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 16),
+          Text(
+            '₹${total.toStringAsFixed(0)}',
+            style: AppTextStyles.statDisplay.copyWith(color: AppColors.accentExpenses),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               _summaryPill(
+                  context,
                   Icons.calendar_today_rounded,
                   'This Month: ₹${totalThisMonth.toStringAsFixed(0)}'),
               const SizedBox(width: 12),
               _summaryPill(
+                  context,
                   Icons.trending_up_rounded,
                   'Avg/day: ₹${avgPerDay.toStringAsFixed(0)}'),
             ],
@@ -206,76 +478,25 @@ class _ExpenseContent extends ConsumerWidget {
     );
   }
 
-  Widget _summaryPill(IconData icon, String text) {
+  Widget _summaryPill(BuildContext context, IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: AppColors.accentExpenses.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 13),
+          Icon(icon, color: context.appColors.textPrimary, size: 13),
           const SizedBox(width: 5),
-          Text(text,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 11)),
+          Text(text, style: AppTextStyles.bodySmall.copyWith(color: context.appColors.textPrimary)),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodToggle(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final current = ref.watch(_periodProvider);
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.onSurface.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: ExpensePeriod.values.map((p) {
-          final selected = p == current;
-          final labels = {
-            ExpensePeriod.week: 'This Week',
-            ExpensePeriod.month: 'This Month',
-            ExpensePeriod.all: 'All Time',
-          };
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => ref.read(_periodProvider.notifier).state = p,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? AppTheme.primaryPurple : Colors.transparent,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Text(
-                  labels[p]!,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight:
-                        selected ? FontWeight.w700 : FontWeight.w400,
-                    color: selected
-                        ? Colors.white
-                        : cs.onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildSpendingChart(
-      BuildContext context, List<Expense> expenses, ExpensePeriod period) {
-    final cs = Theme.of(context).colorScheme;
-
+  Widget _buildSpendingChart(BuildContext context, List<Expense> expenses) {
     // Build daily totals for bar chart
     final Map<String, double> dailyTotals = {};
     for (final e in expenses) {
@@ -288,107 +509,97 @@ class _ExpenseContent extends ConsumerWidget {
 
     final maxY = dailyTotals.values.reduce((a, b) => a > b ? a : b) * 1.3;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Daily Spending',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 180,
-              child: BarChart(
-                BarChartData(
-                  maxY: maxY,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (v) => FlLine(
-                      color: cs.onSurface.withOpacity(0.08),
-                      strokeWidth: 1,
-                    ),
+    return GlassCard(
+      accent: AppColors.accentExpenses,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Daily Spending', style: AppTextStyles.headlineSmall),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 180,
+            child: BarChart(
+              BarChartData(
+                maxY: maxY,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (v) => FlLine(
+                    color: AppColors.glassBorder,
+                    strokeWidth: 1,
                   ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    leftTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 24,
-                        getTitlesWidget: (v, _) {
-                          final idx = v.toInt();
-                          if (idx < 0 || idx >= sortedKeys.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final parts = sortedKeys[idx].split('-');
-                          final label = '${parts[2]}/${parts[1]}';
-                          // Show every nth label to avoid crowding
-                          final step = sortedKeys.length > 10 ? (sortedKeys.length / 6).ceil() : 1;
-                          if (idx % step != 0 && idx != sortedKeys.length - 1) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(label,
-                                style: GoogleFonts.inter(
-                                    fontSize: 8,
-                                    color: cs.onSurface.withOpacity(0.5))),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  barGroups: sortedKeys.asMap().entries.map<BarChartGroupData>((e) {
-                    return BarChartGroupData(
-                      x: e.key,
-                      barRods: [
-                        BarChartRodData(
-                          toY: dailyTotals[e.value]!,
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          width: sortedKeys.length > 15 ? 6 : 12,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                  barTouchData: BarTouchData(
-                    touchTooltipData: BarTouchTooltipData(
-                      getTooltipColor: (_) => cs.surface,
-                      getTooltipItem: (group, _, rod, __) {
-                        return BarTooltipItem(
-                          '₹${rod.toY.toStringAsFixed(0)}',
-                          GoogleFonts.inter(
-                              color: AppTheme.primaryPurple,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      getTitlesWidget: (v, _) {
+                        final idx = v.toInt();
+                        if (idx < 0 || idx >= sortedKeys.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final parts = sortedKeys[idx].split('-');
+                        final label = '${parts[2]}/${parts[1]}';
+                        // Show every nth label to avoid crowding
+                        final step = sortedKeys.length > 10 ? (sortedKeys.length / 6).ceil() : 1;
+                        if (idx % step != 0 && idx != sortedKeys.length - 1) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(label, style: AppTextStyles.bodySmall),
                         );
                       },
                     ),
                   ),
                 ),
+                barGroups: sortedKeys.asMap().entries.map<BarChartGroupData>((e) {
+                  return BarChartGroupData(
+                    x: e.key,
+                    barRods: [
+                      BarChartRodData(
+                        toY: dailyTotals[e.value]!,
+                        gradient: const LinearGradient(
+                          colors: [AppColors.accentExpenses2, AppColors.accentExpenses],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                        width: sortedKeys.length > 15 ? 6 : 12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
+                  );
+                }).toList(),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => Theme.of(context).colorScheme.surface,
+                    getTooltipItem: (group, _, rod, __) {
+                      return BarTooltipItem(
+                        '₹${rod.toY.toStringAsFixed(0)}',
+                        AppTextStyles.titleMedium.copyWith(color: AppColors.accentExpenses),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCategoryBreakdown(
       BuildContext context, List<Expense> expenses) {
-    final cs = Theme.of(context).colorScheme;
     final map = <String, double>{};
     for (final e in expenses) {
       map[e.category] = (map[e.category] ?? 0) + e.amount;
@@ -399,8 +610,8 @@ class _ExpenseContent extends ConsumerWidget {
     final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
     const colors = [
-      Color(0xFF7C4DFF),
-      Color(0xFF00BFA5),
+      Color(0xFFE07B39),
+      Color(0xFF50A878),
       Color(0xFFFF6B6B),
       Color(0xFFFFD200),
       Color(0xFF4CAF50),
@@ -408,82 +619,72 @@ class _ExpenseContent extends ConsumerWidget {
       Color(0xFFE91E63),
     ];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('By Category',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 12),
-            ...sorted.asMap().entries.map<Widget>((entry) {
-              final idx = entry.key;
-              final cat = entry.value;
-              final pct = total > 0 ? cat.value / total : 0.0;
-              final color = colors[idx % colors.length];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
+    return GlassCard(
+      accent: AppColors.accentExpenses,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('By Category', style: AppTextStyles.headlineSmall),
+          const SizedBox(height: 12),
+          ...sorted.asMap().entries.map<Widget>((entry) {
+            final idx = entry.key;
+            final cat = entry.value;
+            final pct = total > 0 ? cat.value / total : 0.0;
+            final color = colors[idx % colors.length];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(3),
                             ),
-                            const SizedBox(width: 8),
-                            Text(cat.key,
-                                style: GoogleFonts.inter(
-                                    fontSize: 13, color: cs.onSurface)),
-                          ],
-                        ),
-                        Text(
-                          '₹${cat.value.toStringAsFixed(0)} (${(pct * 100).toStringAsFixed(0)}%)',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: cs.onSurface),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: pct),
-                      duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOut,
-                      builder: (_, val, __) => ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: val,
-                          backgroundColor: color.withOpacity(0.12),
-                          valueColor: AlwaysStoppedAnimation<Color>(color),
-                          minHeight: 6,
-                        ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(cat.key, style: AppTextStyles.titleMedium),
+                        ],
+                      ),
+                      Text(
+                        '₹${cat.value.toStringAsFixed(0)} (${(pct * 100).toStringAsFixed(0)}%)',
+                        style: AppTextStyles.titleMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: pct),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOut,
+                    builder: (_, val, __) => ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: val,
+                        backgroundColor: color.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                        minHeight: 6,
                       ),
                     ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
 
   Widget _buildTransactionList(
       BuildContext context, WidgetRef ref, List<Expense> expenses) {
-    final cs = Theme.of(context).colorScheme;
     if (expenses.isEmpty) {
       return Center(
         child: Padding(
@@ -491,15 +692,11 @@ class _ExpenseContent extends ConsumerWidget {
           child: Column(
             children: [
               Icon(Icons.receipt_long_rounded,
-                  size: 48, color: cs.onSurface.withOpacity(0.2)),
+                  size: 48, color: context.appColors.textSubtle),
               const SizedBox(height: 12),
-              Text('No expenses yet',
-                  style: GoogleFonts.inter(
-                      color: cs.onSurface.withOpacity(0.4), fontSize: 15)),
+              Text('No expenses yet', style: AppTextStyles.titleMedium),
               const SizedBox(height: 4),
-              Text('Tap + to add your first expense',
-                  style: GoogleFonts.inter(
-                      color: cs.onSurface.withOpacity(0.3), fontSize: 12)),
+              Text('Tap + to add your first expense', style: AppTextStyles.bodySmall),
             ],
           ),
         ),
@@ -518,9 +715,7 @@ class _ExpenseContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Transactions',
-            style: GoogleFonts.inter(
-                fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
+        Text('Transactions', style: AppTextStyles.headlineSmall),
         const SizedBox(height: 12),
         ...groups.entries.map<Widget>((group) {
           final dayTotal = group.value.fold(0.0, (s, e) => s + e.amount);
@@ -532,16 +727,8 @@ class _ExpenseContent extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(group.key,
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface.withOpacity(0.5))),
-                    Text('₹${dayTotal.toStringAsFixed(0)}',
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface.withOpacity(0.5))),
+                    Text(group.key, style: AppTextStyles.bodySmall),
+                    Text('₹${dayTotal.toStringAsFixed(0)}', style: AppTextStyles.bodySmall),
                   ],
                 ),
               ),
@@ -585,65 +772,26 @@ class _ExpenseTile extends StatelessWidget {
     required this.onEdit,
   });
 
-  IconData _paymentIcon(PaymentMethod m) {
-    switch (m) {
-      case PaymentMethod.card:
-        return Icons.credit_card_rounded;
-      case PaymentMethod.upi:
-        return Icons.qr_code_rounded;
-      case PaymentMethod.cash:
-        return Icons.money_rounded;
-      case PaymentMethod.netBanking:
-        return Icons.account_balance_rounded;
-      case PaymentMethod.other:
-        return Icons.payment_rounded;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryPurple.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(_paymentIcon(expense.paymentMethod),
-              color: AppTheme.primaryPurple, size: 20),
-        ),
-        title: Text(expense.title,
-            style: GoogleFonts.inter(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: cs.onSurface)),
-        subtitle: Text(
-          expense.category +
-              (expense.note.isNotEmpty ? ' • ${expense.note}' : ''),
-          style: GoogleFonts.inter(
-              color: cs.onSurface.withOpacity(0.5), fontSize: 12),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassTile(
+        dotColor: AppColors.accentExpenses,
+        title: expense.title,
+        subtitle: expense.category +
+            (expense.note.isNotEmpty ? ' · ${expense.note}' : ''),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '₹${expense.amount.toStringAsFixed(0)}',
-              style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  color: cs.onSurface),
+              style: AppTextStyles.titleMedium.copyWith(
+                  color: AppColors.accentExpenses),
             ),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert,
-                  size: 18, color: cs.onSurface.withOpacity(0.4)),
+                  size: 18, color: context.appColors.textSubtle),
               onSelected: (v) {
                 if (v == 'edit') onEdit();
                 if (v == 'delete') service.deleteExpense(expense.id);
@@ -664,27 +812,23 @@ class _ExpenseTile extends StatelessWidget {
 
 void _showAddEditModal(
     BuildContext context, FirebaseService service, Expense? expense) {
-  showModalBottomSheet(
+  showGlassSheet(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-    builder: (ctx) =>
-        _ExpenseModal(service: service, expense: expense),
+    title: expense == null ? 'Add Expense' : 'Edit Expense',
+    content: _ExpenseModal(service: service, expense: expense),
   );
 }
 
-class _ExpenseModal extends StatefulWidget {
+class _ExpenseModal extends ConsumerStatefulWidget {
   final FirebaseService service;
   final Expense? expense;
   const _ExpenseModal({required this.service, this.expense});
 
   @override
-  State<_ExpenseModal> createState() => _ExpenseModalState();
+  ConsumerState<_ExpenseModal> createState() => _ExpenseModalState();
 }
 
-class _ExpenseModalState extends State<_ExpenseModal> {
+class _ExpenseModalState extends ConsumerState<_ExpenseModal> {
   late TextEditingController _titleCtrl;
   late TextEditingController _amountCtrl;
   late TextEditingController _noteCtrl;
@@ -693,7 +837,7 @@ class _ExpenseModalState extends State<_ExpenseModal> {
   late PaymentMethod _paymentMethod;
   bool _saving = false;
 
-  static const _suggestedCategories = [
+  static const _fallbackCategories = [
     'Groceries', 'Food & Dining', 'Transport', 'Utilities',
     'Entertainment', 'Health', 'Shopping', 'Education', 'Other',
   ];
@@ -756,214 +900,182 @@ class _ExpenseModalState extends State<_ExpenseModal> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final budgetCategories = ref.watch(budgetCategoryNamesProvider);
+    final categories = budgetCategories.isEmpty ? _fallbackCategories : budgetCategories;
     final months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.onSurface.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title & Amount row
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: _titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    prefixIcon: Icon(Icons.receipt_rounded, size: 18),
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _amountCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount (₹)',
+                    prefixIcon: Icon(Icons.currency_rupee_rounded, size: 18),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Category field + chips
+          TextField(
+            controller: _categoryCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Category',
+              prefixIcon: Icon(Icons.category_rounded, size: 18),
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.expense == null ? 'Add Expense' : 'Edit Expense',
-              style: GoogleFonts.inter(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface),
-            ),
-            const SizedBox(height: 16),
-            // Title & Amount row
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _titleCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Title',
-                      prefixIcon: Icon(Icons.receipt_rounded, size: 18),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: categories.map((cat) {
+              final selected = _categoryCtrl.text == cat;
+              return GestureDetector(
+                onTap: () => setState(() => _categoryCtrl.text = cat),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.accentExpenses.withValues(alpha: 0.15)
+                        : context.appColors.textMuted.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.accentExpenses
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Text(
+                    cat,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: selected
+                          ? AppColors.accentExpenses
+                          : context.appColors.textMuted,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _amountCtrl,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Amount (₹)',
-                      prefixIcon: Icon(Icons.currency_rupee_rounded, size: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Category field + chips
-            TextField(
-              controller: _categoryCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                prefixIcon: Icon(Icons.category_rounded, size: 18),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: _suggestedCategories.map((cat) {
-                final selected = _categoryCtrl.text == cat;
-                return GestureDetector(
-                  onTap: () => setState(() => _categoryCtrl.text = cat),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          // Date row
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: _pickDate,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                        horizontal: 12, vertical: 14),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? AppTheme.primaryPurple.withOpacity(0.15)
-                          : cs.onSurface.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: selected
-                            ? AppTheme.primaryPurple
-                            : Colors.transparent,
-                      ),
+                      border: Border.all(color: context.appColors.glassBorder),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      cat,
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: selected
-                            ? AppTheme.primaryPurple
-                            : cs.onSurface.withOpacity(0.6),
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            // Date & payment method row
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _pickDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                            color: cs.onSurface.withOpacity(0.3)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded,
-                              size: 16, color: cs.onSurface.withOpacity(0.6)),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${_date.day} ${months[_date.month - 1]} ${_date.year}',
-                            style: GoogleFonts.inter(
-                                fontSize: 13, color: cs.onSurface),
-                          ),
-                        ],
-                      ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded,
+                            size: 16, color: context.appColors.textMuted),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_date.day} ${months[_date.month - 1]} ${_date.year}',
+                          style: AppTextStyles.bodyMedium,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Payment method chips
-            Text('Payment Method',
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: cs.onSurface.withOpacity(0.5))),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: PaymentMethod.values.map((m) {
-                final selected = _paymentMethod == m;
-                final labels = {
-                  PaymentMethod.cash: 'Cash',
-                  PaymentMethod.card: 'Card',
-                  PaymentMethod.upi: 'UPI',
-                  PaymentMethod.netBanking: 'Net Banking',
-                  PaymentMethod.other: 'Other',
-                };
-                return ChoiceChip(
-                  label: Text(labels[m]!,
-                      style: GoogleFonts.inter(fontSize: 12)),
-                  selected: selected,
-                  selectedColor: AppTheme.primaryPurple.withOpacity(0.2),
-                  onSelected: (_) =>
-                      setState(() => _paymentMethod = m),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            // Note field
-            TextField(
-              controller: _noteCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-                prefixIcon: Icon(Icons.note_rounded, size: 18),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Payment method chips
+          Text('Payment Method', style: AppTextStyles.bodySmall),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: PaymentMethod.values.map((m) {
+              final selected = _paymentMethod == m;
+              final labels = {
+                PaymentMethod.cash: 'Cash',
+                PaymentMethod.card: 'Card',
+                PaymentMethod.upi: 'UPI',
+                PaymentMethod.netBanking: 'Net Banking',
+                PaymentMethod.other: 'Other',
+              };
+              return ChoiceChip(
+                label: Text(labels[m]!, style: AppTextStyles.bodySmall),
+                selected: selected,
+                selectedColor: AppColors.accentExpenses.withValues(alpha: 0.2),
+                onSelected: (_) =>
+                    setState(() => _paymentMethod = m),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          // Note field
+          TextField(
+            controller: _noteCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Note (optional)',
+              prefixIcon: Icon(Icons.note_rounded, size: 18),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryPurple,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      )
-                    : Text(
-                        widget.expense == null
-                            ? 'Add Expense'
-                            : 'Update Expense',
-                        style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentExpenses,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text(
+                      widget.expense == null
+                          ? 'Add Expense'
+                          : 'Update Expense',
+                      style: AppTextStyles.titleMedium,
+                    ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/glass_bottom_sheet.dart';
 import '../../providers/providers.dart';
-import '../../services/auth_service.dart';
+
+// ── Login-screen navy + blue nav palette ───────────────────────────
+class _C {
+  static const activeF  = Color(0xFF1D4ED8); // deep blue
+  static const activeF2 = Color(0xFF0EA5E9); // sky blue
+  static const logoA    = Color(0xFF1D4ED8); // blue (matches login button)
+  static const logoB    = Color(0xFF0EA5E9); // sky
+}
 
 class MainShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -15,708 +22,493 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  int _selectedIndex = 0;
-  List<_NavItem> _activeNavItems = _baseNavItems;
-
-  static const List<_NavItem> _baseNavItems = [
-    _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard', path: '/'),
-    _NavItem(icon: Icons.cleaning_services_rounded, label: 'Cleaning', path: '/cleaning'),
-    _NavItem(icon: Icons.shopping_cart_rounded, label: 'Shopping', path: '/shopping'),
+  static const _bottomItems = [
+    _NavItem(icon: Icons.dashboard_rounded,              label: 'Home',   path: '/'),
+    _NavItem(icon: Icons.shopping_cart_rounded,          label: 'Shop',   path: '/shopping'),
     _NavItem(icon: Icons.account_balance_wallet_rounded, label: 'Budget', path: '/budget'),
-    _NavItem(icon: Icons.receipt_long_rounded, label: 'Expenses', path: '/expenses'),
-    _NavItem(icon: Icons.favorite_rounded, label: 'Health', path: '/health'),
-    _NavItem(icon: Icons.restaurant_menu_rounded, label: 'Food', path: '/food'),
-    _NavItem(icon: Icons.auto_awesome_rounded, label: 'AI Advisor', path: '/advisor'),
+    _NavItem(icon: Icons.favorite_rounded,               label: 'Health', path: '/health'),
   ];
 
-  void _onNavTap(int index) {
-    setState(() => _selectedIndex = index);
-    context.go(_activeNavItems[index].path);
-  }
+  static const _moreItems = [
+    _NavItem(icon: Icons.cleaning_services_rounded,  label: 'Cleaning',   path: '/cleaning'),
+    _NavItem(icon: Icons.receipt_long_rounded,       label: 'Expenses',   path: '/expenses'),
+    _NavItem(icon: Icons.restaurant_menu_rounded,    label: 'Food',       path: '/food'),
+    _NavItem(icon: Icons.auto_awesome_rounded,       label: 'AI Advisor', path: '/advisor'),
+    _NavItem(icon: Icons.favorite_border_rounded,    label: 'Wish List',  path: '/wishlist'),
+  ];
+
+  // flat list — no group headers, TASKHUB style
+  List<_NavItem> _buildNavItems(bool isAdmin) => [
+    const _NavItem(icon: Icons.dashboard_rounded,              label: 'Dashboard',      path: '/'),
+    const _NavItem(icon: Icons.cleaning_services_rounded,      label: 'Cleaning',       path: '/cleaning'),
+    const _NavItem(icon: Icons.shopping_cart_rounded,          label: 'Shopping',       path: '/shopping'),
+    const _NavItem(icon: Icons.account_balance_wallet_rounded, label: 'Budget',         path: '/budget'),
+    const _NavItem(icon: Icons.receipt_long_rounded,           label: 'Expenses',       path: '/expenses'),
+    const _NavItem(icon: Icons.favorite_rounded,               label: 'Health',         path: '/health'),
+    const _NavItem(icon: Icons.restaurant_menu_rounded,        label: 'Food Tracker',   path: '/food'),
+    const _NavItem(icon: Icons.favorite_border_rounded,        label: 'Wish List',      path: '/wishlist'),
+    const _NavItem(icon: Icons.auto_awesome_rounded,           label: 'AI Advisor',     path: '/advisor'),
+    if (isAdmin)
+      const _NavItem(icon: Icons.health_and_safety_rounded,   label: 'PCOS Guide',     path: '/pcos-guide'),
+  ];
+
+  void _navigate(String path) => context.go(path);
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ref.watch(themeModeProvider);
-    final isAdmin = ref.watch(isAdminProvider);
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 800;
-    final isExpanded = width >= 1200;
-
-    final wishItem = _NavItem(
-      icon: Icons.favorite_border_rounded,
-      label: isAdmin ? "Wife's Wish List" : 'Wish List',
-      path: '/wishlist',
-    );
-    final navItems = [
-      ..._baseNavItems.take(7),
-      wishItem,
-      _baseNavItems.last,
-      if (isAdmin)
-        const _NavItem(
-          icon: Icons.health_and_safety_rounded,
-          label: 'PCOS Guide',
-          path: '/pcos-guide',
-        ),
-    ];
-    _activeNavItems = navItems;
-
-    // Sync index from current route
+    final isDark      = ref.watch(themeModeProvider);
+    final isAdmin     = ref.watch(isAdminProvider);
+    final isWide      = MediaQuery.of(context).size.width >= 800;
     final currentPath = GoRouterState.of(context).uri.path;
-    final routeIndex = navItems.indexWhere((n) => n.path == currentPath);
-    if (routeIndex != -1 && routeIndex != _selectedIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _selectedIndex = routeIndex);
-      });
-    }
+    final navItems    = _buildNavItems(isAdmin);
 
     return Scaffold(
-      // ── Mobile AppBar ──────────────────────────────────────────
-      appBar: isWide
-          ? null
-          : AppBar(
-              titleSpacing: 0,
-              title: Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.home_rounded,
-                        color: Colors.white, size: 18),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'HomeSync',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                const _AdminBadge(),
-                IconButton(
-                  icon: Icon(isDark
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded),
-                  onPressed: () =>
-                      ref.read(themeModeProvider.notifier).state = !isDark,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  tooltip: 'Notification Settings',
-                  onPressed: () => context.push('/settings'),
-                ),
-                const SizedBox(width: 4),
-              ],
-            ),
-
-      // ── Mobile Drawer ──────────────────────────────────────────
-      drawer: isWide
-          ? null
-          : _MobileDrawer(
-              selectedIndex: _selectedIndex,
-              navItems: navItems,
-              isDark: isDark,
-              isAdmin: isAdmin,
-              shellContext: context,
-              onTap: (i) {
-                Navigator.pop(context);
-                _onNavTap(i);
-              },
-              onToggleTheme: () =>
-                  ref.read(themeModeProvider.notifier).state = !isDark,
-              onSignOut: () {
-                Navigator.pop(context);
-                ref.read(authServiceProvider).signOut();
-              },
-            ),
-
-      // ── Body ───────────────────────────────────────────────────
+      backgroundColor: isDark ? const Color(0xFF071223) : const Color(0xFFF1F5F9),
+      appBar: isWide ? null : _buildAppBar(context, isDark, currentPath),
       body: isWide
-          ? Row(
-              children: [
-                _SideNavRail(
-                  selectedIndex: _selectedIndex,
-                  navItems: navItems,
-                  onTap: _onNavTap,
-                  isExpanded: isExpanded,
-                  isDark: isDark,
-                  onToggleTheme: () =>
-                      ref.read(themeModeProvider.notifier).state = !isDark,
-                  onSignOut: () => ref.read(authServiceProvider).signOut(),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: widget.child),
-              ],
-            )
+          ? Row(children: [
+              _TaskHubSidebar(
+                items: navItems,
+                currentPath: currentPath,
+                onNavigate: _navigate,
+                onSignOut: () => ref.read(authServiceProvider).signOut(),
+                isDark: isDark,
+                onToggleTheme: () => ref.read(themeModeProvider.notifier).state = !isDark,
+              ),
+              Expanded(child: widget.child),
+            ])
           : widget.child,
+      bottomNavigationBar: isWide
+          ? null
+          : _TaskHubBottomBar(
+              items: _bottomItems,
+              moreItems: _moreItems,
+              currentPath: currentPath,
+              onNavigate: _navigate,
+            ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+      BuildContext context, bool isDark, String currentPath) {
+    final appBarBg  = isDark ? const Color(0xFF071223) : Colors.white;
+    final titleCol  = isDark ? Colors.white : const Color(0xFF0F172A);
+    final mutedCol  = isDark ? const Color(0xFF7096B8) : const Color(0xFF6B7280);
+    return AppBar(
+      backgroundColor: appBarBg,
+      elevation: 0,
+      title: Row(children: [
+        _LogoBadge(size: 30),
+        const SizedBox(width: 10),
+        Text('HomeSync',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: titleCol,
+              letterSpacing: -0.3,
+            )),
+      ]),
+      actions: [
+        IconButton(
+          icon: Icon(
+            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            size: 19,
+            color: mutedCol,
+          ),
+          onPressed: () =>
+              ref.read(themeModeProvider.notifier).state = !isDark,
+        ),
+        IconButton(
+          icon: Icon(Icons.notifications_outlined, size: 19, color: mutedCol),
+          onPressed: () => context.push('/settings'),
+        ),
+        const SizedBox(width: 4),
+      ],
     );
   }
 }
 
-// ─── Mobile Drawer ────────────────────────────────────────────────
+// ── Logo badge ──────────────────────────────────────────────────────
+class _LogoBadge extends StatelessWidget {
+  final double size;
+  const _LogoBadge({required this.size});
 
-class _MobileDrawer extends StatelessWidget {
-  final int selectedIndex;
-  final List<_NavItem> navItems;
-  final bool isDark;
-  final bool isAdmin;
-  final ValueChanged<int> onTap;
-  final VoidCallback onToggleTheme;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_C.logoA, _C.logoB],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        boxShadow: [
+          BoxShadow(
+            color: _C.logoA.withValues(alpha: 0.40),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Icon(Icons.home_rounded,
+          color: Colors.white, size: size * 0.50),
+    );
+  }
+}
+
+// ── Sidebar ─────────────────────────────────────────────────────────
+class _TaskHubSidebar extends StatelessWidget {
+  final List<_NavItem> items;
+  final String currentPath;
+  final ValueChanged<String> onNavigate;
   final VoidCallback onSignOut;
-  final BuildContext shellContext;
+  final bool isDark;
+  final VoidCallback onToggleTheme;
 
-  const _MobileDrawer({
-    required this.selectedIndex,
-    required this.navItems,
-    required this.isDark,
-    required this.isAdmin,
-    required this.onTap,
-    required this.onToggleTheme,
+  const _TaskHubSidebar({
+    required this.items,
+    required this.currentPath,
+    required this.onNavigate,
     required this.onSignOut,
-    required this.shellContext,
+    required this.isDark,
+    required this.onToggleTheme,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF071223) : Colors.white;
+    final dividerColor = isDark ? const Color(0x1438BDF8) : const Color(0x18000000);
+    final mutedText = isDark ? const Color(0xFF7096B8) : const Color(0xFF6B7280);
 
-    return Drawer(
+    return Container(
+      width: 226,
+      color: bg,
       child: SafeArea(
-        child: Column(
-          children: [
-            // ── Drawer header ──────────────────────────────────
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.home_rounded,
-                        color: Colors.white, size: 26),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'HomeSync',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 22,
+        child: Column(children: [
+          // Brand
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Row(children: [
+              _LogoBadge(size: 38),
+              const SizedBox(width: 12),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('HomeSync',
+                    style: TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      letterSpacing: -0.3,
+                    )),
+                Text('Smart Home Manager',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: mutedText,
+                      fontWeight: FontWeight.w400,
+                    )),
+              ]),
+            ]),
+          ),
+          Divider(height: 1, color: dividerColor),
+          const SizedBox(height: 8),
+          // Nav items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: items
+                  .map((item) => _SidebarTile(
+                        item: item,
+                        active: currentPath == item.path,
+                        onTap: () => onNavigate(item.path),
+                      ))
+                  .toList(),
+            ),
+          ),
+          Divider(height: 1, color: dividerColor),
+          // Footer
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                child: Row(
+                  children: [
+                    Icon(
+                      isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                      size: 14,
+                      color: mutedText,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Smart Home Manager',
-                        style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(0.75),
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (isAdmin) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.25),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'ADMIN',
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Nav items ──────────────────────────────────────
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                itemCount: navItems.length,
-                itemBuilder: (ctx, i) {
-                  final item = navItems[i];
-                  final selected = selectedIndex == i;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: _DrawerNavTile(
-                      item: item,
-                      selected: selected,
-                      onTap: () => onTap(i),
+                    const SizedBox(width: 8),
+                    Text(isDark ? 'Dark mode' : 'Light mode',
+                        style: TextStyle(fontSize: 12, color: mutedText, fontWeight: FontWeight.w400)),
+                    const Spacer(),
+                    Switch.adaptive(
+                      value: isDark,
+                      onChanged: (_) => onToggleTheme(),
+                      activeThumbColor: const Color(0xFF38BDF8),
+                      activeTrackColor: const Color(0xFF38BDF8).withValues(alpha: 0.5),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  );
-                },
-              ),
-            ),
-
-            // ── Footer actions ─────────────────────────────────
-            Divider(
-                height: 1, color: cs.onSurface.withOpacity(0.08)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: _FooterButton(
-                icon: Icons.notifications_outlined,
-                label: 'Notifications',
-                onTap: () {
-                  Navigator.pop(context);
-                  shellContext.push('/settings');
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _FooterButton(
-                      icon: isDark
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
-                      label: isDark ? 'Light Mode' : 'Dark Mode',
-                      onTap: onToggleTheme,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _FooterButton(
-                      icon: Icons.logout_rounded,
-                      label: 'Sign Out',
-                      onTap: onSignOut,
-                      isDestructive: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerNavTile extends StatelessWidget {
-  final _NavItem item;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _DrawerNavTile({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.primaryPurple.withOpacity(0.12)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: selected
-                    ? AppTheme.primaryPurple.withOpacity(0.15)
-                    : cs.onSurface.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                item.icon,
-                color: selected
-                    ? AppTheme.primaryPurple
-                    : cs.onSurface.withOpacity(0.45),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Text(
-              item.label,
-              style: GoogleFonts.inter(
-                color: selected
-                    ? AppTheme.primaryPurple
-                    : cs.onSurface.withOpacity(0.75),
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
-            if (selected) ...[
-              const Spacer(),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryPurple,
-                  borderRadius: BorderRadius.circular(2),
+                  ],
                 ),
               ),
-            ],
-          ],
-        ),
+              _SidebarTile(
+                item: const _NavItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    path: '/settings'),
+                active: currentPath == '/settings',
+                onTap: () => onNavigate('/settings'),
+              ),
+              _SidebarTile(
+                item: const _NavItem(
+                    icon: Icons.logout_rounded,
+                    label: 'Sign Out',
+                    path: ''),
+                active: false,
+                onTap: onSignOut,
+                isDestructive: true,
+              ),
+            ]),
+          ),
+        ]),
       ),
     );
   }
 }
 
-class _FooterButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _SidebarTile extends StatelessWidget {
+  final _NavItem item;
+  final bool active;
   final bool isDestructive;
+  final VoidCallback onTap;
 
-  const _FooterButton({
-    required this.icon,
-    required this.label,
+  const _SidebarTile({
+    required this.item,
+    required this.active,
     required this.onTap,
     this.isDestructive = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = isDestructive ? Colors.red : cs.onSurface.withOpacity(0.6);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isDestructive
-              ? Colors.red.withOpacity(0.06)
-              : cs.onSurface.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: color,
-                  fontWeight: FontWeight.w500),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedIcon = isDark ? const Color(0xFF4A6A8A) : const Color(0xFF9CA3AF);
+    final mutedTxt  = isDark ? const Color(0xFF7096B8) : const Color(0xFF6B7280);
+
+    final iconCol = isDestructive
+        ? const Color(0xFFFB7185)
+        : active
+            ? Colors.white
+            : mutedIcon;
+    final textCol = isDestructive
+        ? const Color(0xFFFB7185)
+        : active
+            ? Colors.white
+            : mutedTxt;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          splashColor: _C.activeF.withValues(alpha: 0.12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: active
+                  ? const LinearGradient(
+                      colors: [_C.activeF, _C.activeF2],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    )
+                  : null,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Wide Side Rail (unchanged) ───────────────────────────────────
-
-class _SideNavRail extends StatelessWidget {
-  final int selectedIndex;
-  final List<_NavItem> navItems;
-  final ValueChanged<int> onTap;
-  final bool isExpanded;
-  final bool isDark;
-  final VoidCallback onToggleTheme;
-  final VoidCallback onSignOut;
-
-  const _SideNavRail({
-    required this.selectedIndex,
-    required this.navItems,
-    required this.onTap,
-    required this.isExpanded,
-    required this.isDark,
-    required this.onToggleTheme,
-    required this.onSignOut,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: isExpanded ? 220 : 72,
-      color: cs.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            if (isExpanded) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppTheme.primaryPurple,
-                            AppTheme.accentTeal
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.home_rounded,
-                          color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'HomeSync',
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 18,
-                        color: cs.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ] else ...[
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
+            child: Row(children: [
+              Icon(item.icon, size: 17, color: iconCol),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textCol,
+                    fontWeight:
+                        active ? FontWeight.w600 : FontWeight.w400,
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: const Icon(Icons.home_rounded,
-                    color: Colors.white, size: 22),
               ),
-              const SizedBox(height: 24),
-            ],
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Bottom tab bar ───────────────────────────────────────────────────
+class _TaskHubBottomBar extends StatelessWidget {
+  final List<_NavItem> items;
+  final List<_NavItem> moreItems;
+  final String currentPath;
+  final ValueChanged<String> onNavigate;
+
+  const _TaskHubBottomBar({
+    required this.items,
+    required this.moreItems,
+    required this.currentPath,
+    required this.onNavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF071223) : Colors.white;
+    final dividerColor = isDark ? const Color(0x1438BDF8) : const Color(0x18000000);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border(top: BorderSide(color: dividerColor)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 62,
+          child: Row(children: [
+            for (final item in items)
+              Expanded(
+                child: _BottomTab(
+                  item: item,
+                  active: currentPath == item.path,
+                  onTap: () => onNavigate(item.path),
+                ),
+              ),
             Expanded(
-              child: ListView.builder(
-                itemCount: navItems.length,
-                padding: EdgeInsets.symmetric(
-                    horizontal: isExpanded ? 12 : 8),
-                itemBuilder: (ctx, i) {
-                  final item = navItems[i];
-                  final selected = selectedIndex == i;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: isExpanded
-                        ? _ExpandedNavTile(
-                            item: item,
-                            selected: selected,
-                            onTap: () => onTap(i),
-                          )
-                        : _CompactNavTile(
-                            item: item,
-                            selected: selected,
-                            onTap: () => onTap(i),
-                          ),
-                  );
-                },
-              ),
+              child: _MoreTab(
+                  moreItems: moreItems, onNavigate: onNavigate),
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: IconButton(
-                icon: Icon(isDark
-                    ? Icons.light_mode_rounded
-                    : Icons.dark_mode_rounded),
-                onPressed: onToggleTheme,
-                color: cs.onSurface.withOpacity(0.6),
-                tooltip: isDark ? 'Light mode' : 'Dark mode',
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: IconButton(
-                icon: const Icon(Icons.logout_rounded),
-                onPressed: onSignOut,
-                color: cs.onSurface.withOpacity(0.6),
-                tooltip: 'Sign out',
-              ),
-            ),
-          ],
+          ]),
         ),
       ),
     );
   }
 }
 
-class _ExpandedNavTile extends StatelessWidget {
+class _BottomTab extends StatelessWidget {
   final _NavItem item;
-  final bool selected;
+  final bool active;
   final VoidCallback onTap;
-
-  const _ExpandedNavTile({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
+  const _BottomTab(
+      {required this.item, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedIcon = isDark ? const Color(0xFF4A6A8A) : const Color(0xFF9CA3AF);
+    final mutedTxt  = isDark ? const Color(0xFF7096B8) : const Color(0xFF6B7280);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? AppTheme.primaryPurple.withOpacity(0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              item.icon,
-              color: selected
-                  ? AppTheme.primaryPurple
-                  : cs.onSurface.withOpacity(0.5),
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              item.label,
-              style: GoogleFonts.inter(
-                color: selected
-                    ? AppTheme.primaryPurple
-                    : cs.onSurface.withOpacity(0.6),
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompactNavTile extends StatelessWidget {
-  final _NavItem item;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _CompactNavTile({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: item.label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(12),
+          width: 40,
+          height: 32,
           decoration: BoxDecoration(
-            color: selected
-                ? AppTheme.primaryPurple.withOpacity(0.15)
-                : Colors.transparent,
+            gradient: active
+                ? const LinearGradient(
+                    colors: [_C.activeF, _C.activeF2],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            item.icon,
-            color: selected
-                ? AppTheme.primaryPurple
-                : cs.onSurface.withOpacity(0.5),
-            size: 24,
+          child: Icon(item.icon,
+              size: 18,
+              color: active ? Colors.white : mutedIcon),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          item.label,
+          style: TextStyle(
+            fontSize: 10,
+            color: active ? Colors.white : mutedTxt,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w400,
           ),
         ),
-      ),
+      ]),
     );
   }
 }
 
-class _NavItem {
-  final IconData icon;
-  final String label;
-  final String path;
-  const _NavItem(
-      {required this.icon, required this.label, required this.path});
-}
-
-class _AdminBadge extends ConsumerWidget {
-  const _AdminBadge();
+class _MoreTab extends StatelessWidget {
+  final List<_NavItem> moreItems;
+  final ValueChanged<String> onNavigate;
+  const _MoreTab({required this.moreItems, required this.onNavigate});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(isAdminProvider);
-    if (!isAdmin) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          'ADMIN',
-          style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.8,
-          ),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedIcon = isDark ? const Color(0xFF4A6A8A) : const Color(0xFF9CA3AF);
+    final mutedTxt  = isDark ? const Color(0xFF7096B8) : const Color(0xFF6B7280);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => showGlassSheet(
+        context: context,
+        title: 'More',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: moreItems
+              .map((item) => ListTile(
+                    leading: Icon(item.icon,
+                        color: _C.activeF2, size: 20),
+                    title: Text(item.label,
+                        style: AppTextStyles.bodyMedium),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onNavigate(item.path);
+                    },
+                  ))
+              .toList(),
         ),
       ),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          width: 40,
+          height: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.grid_view_rounded,
+              size: 18, color: mutedIcon),
+        ),
+        const SizedBox(height: 2),
+        Text('More',
+            style: TextStyle(
+                fontSize: 10,
+                color: mutedTxt,
+                fontWeight: FontWeight.w400)),
+      ]),
     );
   }
+}
+
+// ── Data classes ──────────────────────────────────────────────────────
+class _NavItem {
+  final IconData icon;
+  final String label, path;
+  const _NavItem(
+      {required this.icon, required this.label, required this.path});
 }

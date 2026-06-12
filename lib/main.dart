@@ -30,7 +30,7 @@ class HomeSyncApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'HomeSync',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(),
+      theme:     AppTheme.lightTheme(),
       darkTheme: AppTheme.darkTheme(),
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       routerConfig: appRouter,

@@ -14,4 +14,7 @@ class AuthService {
       _auth.createUserWithEmailAndPassword(email: email, password: password);
 
   Future<void> signOut() => _auth.signOut();
+
+  Future<void> sendPasswordResetEmail(String email) =>
+      _auth.sendPasswordResetEmail(email: email);
 }

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum HabitType { binary, measurement }
+
 class HealthHabit {
   final String id;
   final String name;
@@ -7,8 +9,10 @@ class HealthHabit {
   final String unit;
   final double todayValue;
   final int streak;
-  final List<double> weeklyData;
+  final Map<String, double> dailyLog; // 'YYYY-MM-DD' → value logged that day
   final String icon;
+  final HabitType habitType;
+  final String lastResetDate;
 
   HealthHabit({
     required this.id,
@@ -17,18 +21,30 @@ class HealthHabit {
     required this.unit,
     required this.todayValue,
     required this.streak,
-    required this.weeklyData,
+    required this.dailyLog,
     required this.icon,
+    this.habitType = HabitType.measurement,
+    this.lastResetDate = '',
   });
 
-  double get progressPercent =>
-      goal > 0 ? (todayValue / goal).clamp(0.0, 1.0) : 0.0;
+  double get progressPercent {
+    if (habitType == HabitType.binary) return todayValue >= 1 ? 1.0 : 0.0;
+    return goal > 0 ? (todayValue / goal).clamp(0.0, 1.0) : 0.0;
+  }
 
-  bool get isCompleted => todayValue >= goal;
+  bool get isCompleted =>
+      habitType == HabitType.binary ? todayValue >= 1 : todayValue >= goal;
+
+  bool completedOnDate(String dateKey) {
+    if (dateKey == lastResetDate) return isCompleted;
+    final val = dailyLog[dateKey] ?? 0.0;
+    return val >= (habitType == HabitType.binary ? 1.0 : goal);
+  }
 
   factory HealthHabit.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final rawWeekly = data['weeklyData'] as List<dynamic>? ?? [];
+    final typeStr = data['habitType'] as String? ?? 'measurement';
+    final rawLog = data['dailyLog'] as Map<String, dynamic>? ?? {};
     return HealthHabit(
       id: doc.id,
       name: data['name'] ?? '',
@@ -36,8 +52,10 @@ class HealthHabit {
       unit: data['unit'] ?? '',
       todayValue: (data['todayValue'] ?? 0).toDouble(),
       streak: data['streak'] ?? 0,
-      weeklyData: rawWeekly.map((e) => (e as num).toDouble()).toList(),
+      dailyLog: rawLog.map((k, v) => MapEntry(k, (v as num).toDouble())),
       icon: data['icon'] ?? 'favorite',
+      habitType: typeStr == 'binary' ? HabitType.binary : HabitType.measurement,
+      lastResetDate: data['lastResetDate'] as String? ?? '',
     );
   }
 
@@ -48,8 +66,10 @@ class HealthHabit {
       'unit': unit,
       'todayValue': todayValue,
       'streak': streak,
-      'weeklyData': weeklyData,
+      'dailyLog': dailyLog,
       'icon': icon,
+      'habitType': habitType == HabitType.binary ? 'binary' : 'measurement',
+      'lastResetDate': lastResetDate,
     };
   }
 
@@ -60,8 +80,10 @@ class HealthHabit {
     String? unit,
     double? todayValue,
     int? streak,
-    List<double>? weeklyData,
+    Map<String, double>? dailyLog,
     String? icon,
+    HabitType? habitType,
+    String? lastResetDate,
   }) {
     return HealthHabit(
       id: id ?? this.id,
@@ -70,8 +92,10 @@ class HealthHabit {
       unit: unit ?? this.unit,
       todayValue: todayValue ?? this.todayValue,
       streak: streak ?? this.streak,
-      weeklyData: weeklyData ?? this.weeklyData,
+      dailyLog: dailyLog ?? this.dailyLog,
       icon: icon ?? this.icon,
+      habitType: habitType ?? this.habitType,
+      lastResetDate: lastResetDate ?? this.lastResetDate,
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
 import '../../providers/providers.dart';
 
 // ─── Message model ────────────────────────────────────────────────
@@ -257,9 +259,9 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
         builder: (ctx, setSt) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: AppColors.darkSurface,
           title: Text('Gemini API Key',
-              style:
-                  GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 18)),
+              style: AppTextStyles.headlineSmall),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,31 +269,33 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryPurple.withOpacity(0.08),
+                  color: AppColors.accentAdvisor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: AppColors.accentAdvisor.withValues(alpha: 0.20)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      const Icon(Icons.info_outline_rounded,
-                          size: 14, color: AppTheme.primaryPurple),
+                      Icon(Icons.info_outline_rounded,
+                          size: 14,
+                          color: AppColors.accentAdvisor),
                       const SizedBox(width: 6),
                       Text('How to get a free key:',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
+                          style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.primaryPurple)),
+                              color: AppColors.accentAdvisor)),
                     ]),
                     const SizedBox(height: 4),
                     Text('1. Go to aistudio.google.com',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: AppTextStyles.bodySmall),
                     Text('2. Sign in with Google account',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: AppTextStyles.bodySmall),
                     Text('3. Click "Get API Key" → Create',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: AppTextStyles.bodySmall),
                     Text('4. Copy & paste the key below',
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: AppTextStyles.bodySmall),
                   ],
                 ),
               ),
@@ -299,9 +303,13 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
               TextField(
                 controller: ctrl,
                 obscureText: obscure,
+                style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   labelText: 'API Key',
                   hintText: 'AIzaSy...',
+                  hintStyle: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSubtle),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   suffixIcon: Row(
@@ -323,18 +331,19 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                     ],
                   ),
                 ),
-                style: GoogleFonts.inter(fontSize: 13),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text('Cancel',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textMuted))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryPurple,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.accentAdvisor,
+                foregroundColor: AppColors.darkBase,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
@@ -347,7 +356,9 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                 }
               },
               child: Text('Save & Connect',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkBase)),
             ),
           ],
         ),
@@ -368,39 +379,28 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final hasKey = _apiKey != null && _apiKey!.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: AppColors.darkBase,
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 8),
-              child: Row(
+            // ── Aurora Hero Header ───────────────────────────────
+            AuroraHero(
+              accent: AppColors.accentAdvisor,
+              eyebrow: 'AI · ADVISOR',
+              title: 'AI Advisor',
+              subtitle: 'Your personal home assistant',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('AI Advisor',
-                          style: GoogleFonts.inter(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: cs.onSurface)),
-                      Text('Gemini 1.5 Flash • Free tier',
-                          style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: cs.onSurface.withOpacity(0.4))),
-                    ],
-                  ),
-                  const Spacer(),
                   if (_messages.isNotEmpty)
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded),
                       tooltip: 'New chat',
                       onPressed: _resetChat,
-                      color: cs.onSurface.withOpacity(0.5),
+                      color: AppColors.textMuted,
                     ),
                   GestureDetector(
                     onTap: _showKeyDialog,
@@ -409,13 +409,13 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                           horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: hasKey
-                            ? const Color(0xFF4CAF50).withOpacity(0.12)
-                            : Colors.orange.withOpacity(0.12),
+                            ? const Color(0xFF34D399).withValues(alpha: 0.12)
+                            : Colors.orange.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: hasKey
-                              ? const Color(0xFF4CAF50).withOpacity(0.4)
-                              : Colors.orange.withOpacity(0.4),
+                              ? const Color(0xFF34D399).withValues(alpha: 0.4)
+                              : Colors.orange.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Row(
@@ -427,17 +427,16 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                                 : Icons.key_rounded,
                             size: 13,
                             color: hasKey
-                                ? const Color(0xFF4CAF50)
+                                ? const Color(0xFF34D399)
                                 : Colors.orange,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             hasKey ? 'Connected' : 'Set API Key',
-                            style: GoogleFonts.inter(
-                                fontSize: 11,
+                            style: AppTextStyles.bodySmall.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: hasKey
-                                    ? const Color(0xFF4CAF50)
+                                    ? const Color(0xFF34D399)
                                     : Colors.orange),
                           ),
                         ],
@@ -450,6 +449,7 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
 
             // ── Quick prompts (visible when chat is empty) ───────
             if (_messages.isEmpty) ...[
+              const SizedBox(height: 12),
               SizedBox(
                 height: 36,
                 child: ListView.separated(
@@ -459,13 +459,13 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (ctx, i) => ActionChip(
                     label: Text(_quickPrompts[i],
-                        style: GoogleFonts.inter(fontSize: 12)),
+                        style: AppTextStyles.bodySmall),
                     onPressed:
                         hasKey ? () => _send(_quickPrompts[i]) : null,
                     backgroundColor:
-                        AppTheme.primaryPurple.withOpacity(0.08),
+                        AppColors.accentAdvisor.withValues(alpha: 0.08),
                     side: BorderSide(
-                        color: AppTheme.primaryPurple.withOpacity(0.25)),
+                        color: AppColors.accentAdvisor.withValues(alpha: 0.25)),
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     visualDensity: VisualDensity.compact,
                   ),
@@ -497,10 +497,10 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
               decoration: BoxDecoration(
-                color: cs.surface,
+                color: AppColors.darkSurface,
                 border: Border(
                     top: BorderSide(
-                        color: cs.onSurface.withOpacity(0.08))),
+                        color: AppColors.glassBorder)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -513,23 +513,23 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                       minLines: 1,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         hintText: hasKey
                             ? 'Ask about cleaning, food, budget, health...'
                             : 'Tap "Set API Key" to start',
-                        hintStyle: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: cs.onSurface.withOpacity(0.35)),
+                        hintStyle: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSubtle),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: cs.surfaceContainerHighest,
+                        fillColor: AppColors.glassCard,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                       ),
-                      style: GoogleFonts.inter(fontSize: 14),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -538,8 +538,8 @@ class _AdvisorScreenState extends ConsumerState<AdvisorScreen> {
                     height: 44,
                     child: FloatingActionButton(
                       backgroundColor: _loading || !hasKey
-                          ? cs.onSurface.withOpacity(0.15)
-                          : AppTheme.primaryPurple,
+                          ? AppColors.glassBorder
+                          : AppColors.accentAdvisor,
                       elevation: 0,
                       onPressed: _loading || !hasKey
                           ? null
@@ -582,7 +582,6 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
@@ -593,38 +592,30 @@ class _EmptyState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: AppColors.accentAdvisor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: AppColors.accentAdvisor.withValues(alpha: 0.30)),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryPurple.withOpacity(0.4),
+                    color: AppColors.accentAdvisor.withValues(alpha: 0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 36),
+              child: Icon(Icons.auto_awesome_rounded,
+                  color: AppColors.accentAdvisor, size: 36),
             ),
             const SizedBox(height: 20),
             Text('AI Home Advisor',
-                style: GoogleFonts.inter(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurface)),
+                style: AppTextStyles.headlineLarge),
             const SizedBox(height: 8),
             Text(
               hasKey
                   ? 'Your personal AI trained on your live home data.\nAsk anything — food, cleaning, budget, health.'
                   : 'Connect Google Gemini (free) to get\npersonalized insights from your home data.',
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: cs.onSurface.withOpacity(0.5),
-                  height: 1.6),
+              style: AppTextStyles.bodyMedium.copyWith(height: 1.6),
               textAlign: TextAlign.center,
             ),
             if (hasKey) ...[
@@ -635,15 +626,17 @@ class _EmptyState extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: _featured
                     .map((p) => ActionChip(
-                          avatar: const Icon(Icons.auto_awesome_rounded,
-                              size: 14, color: AppTheme.primaryPurple),
+                          avatar: Icon(Icons.auto_awesome_rounded,
+                              size: 14,
+                              color: AppColors.accentAdvisor),
                           label: Text(p,
-                              style: GoogleFonts.inter(fontSize: 13)),
+                              style: AppTextStyles.bodySmall),
                           onPressed: () => onTap(p),
                           backgroundColor:
-                              AppTheme.primaryPurple.withOpacity(0.08),
+                              AppColors.accentAdvisor.withValues(alpha: 0.08),
                           side: BorderSide(
-                              color: AppTheme.primaryPurple.withOpacity(0.25)),
+                              color: AppColors.accentAdvisor
+                                  .withValues(alpha: 0.25)),
                         ))
                     .toList(),
               ),
@@ -663,7 +656,6 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isUser = msg.role == _Role.user;
 
     return Padding(
@@ -678,12 +670,13 @@ class _Bubble extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [AppTheme.primaryPurple, AppTheme.accentTeal]),
+                color: AppColors.accentAdvisor.withValues(alpha: 0.15),
+                border: Border.all(
+                    color: AppColors.accentAdvisor.withValues(alpha: 0.30)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 14),
+              child: Icon(Icons.auto_awesome_rounded,
+                  color: AppColors.accentAdvisor, size: 14),
             ),
             const SizedBox(width: 8),
           ],
@@ -691,33 +684,26 @@ class _Bubble extends StatelessWidget {
             child: GestureDetector(
               onLongPress: () =>
                   Clipboard.setData(ClipboardData(text: msg.text)),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: isUser
-                      ? const LinearGradient(colors: [
-                          AppTheme.primaryPurple,
-                          Color(0xFF5340D8),
-                        ])
-                      : null,
-                  color: isUser ? null : cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(16),
-                    topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isUser ? 16 : 4),
-                    bottomRight: Radius.circular(isUser ? 4 : 16),
-                  ),
-                ),
-                child: Text(
-                  msg.text,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: isUser ? Colors.white : cs.onSurface,
-                    height: 1.55,
-                  ),
-                ),
-              ),
+              child: isUser
+                  ? GlassCard(
+                      accent: AppColors.accentAdvisor,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Text(
+                        msg.text,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textPrimary, height: 1.55),
+                      ),
+                    )
+                  : GlassCard(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Text(
+                        msg.text,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textPrimary, height: 1.55),
+                      ),
+                    ),
             ),
           ),
           if (isUser) const SizedBox(width: 8),
@@ -769,7 +755,6 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -779,26 +764,18 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                  colors: [AppTheme.primaryPurple, AppTheme.accentTeal]),
+              color: AppColors.accentAdvisor.withValues(alpha: 0.15),
+              border: Border.all(
+                  color: AppColors.accentAdvisor.withValues(alpha: 0.30)),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 14),
+            child: Icon(Icons.auto_awesome_rounded,
+                color: AppColors.accentAdvisor, size: 14),
           ),
           const SizedBox(width: 8),
-          Container(
+          GlassCard(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-                bottomLeft: Radius.circular(4),
-              ),
-            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(
@@ -810,7 +787,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                     width: 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryPurple,
+                      color: AppColors.accentAdvisor,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
