@@ -42,9 +42,9 @@ class _GlassSheet extends StatelessWidget {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       decoration: BoxDecoration(
-        color: AppColors.darkSurface.withValues(alpha: 0.97),
+        color: context.appColors.surface.withValues(alpha: 0.97),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: AppColors.glassBorder),
+        border: Border.all(color: context.appColors.glassBorder),
       ),
       child: SafeArea(
         child: Padding(
@@ -58,7 +58,7 @@ class _GlassSheet extends StatelessWidget {
                   width: 36, height: 4,
                   margin: const EdgeInsets.only(bottom: 18),
                   decoration: BoxDecoration(
-                    color: AppColors.textSubtle,
+                    color: context.appColors.textSubtle,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -82,7 +82,7 @@ class _GlassDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: context.appColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),

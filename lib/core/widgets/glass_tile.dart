@@ -26,6 +26,7 @@ class GlassTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -35,18 +36,15 @@ class GlassTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
-            color: AppColors.glassCard,
+            color: colors.glassCard,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.glassBorder),
+            border: Border.all(color: colors.glassBorder),
           ),
           child: Row(
             children: [
               Container(
                 width: 8, height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: dotColor,
-                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
               ),
               const SizedBox(width: 12),
               if (leading != null) ...[leading!, const SizedBox(width: 10)],

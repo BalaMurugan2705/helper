@@ -1,6 +1,6 @@
 // lib/core/widgets/glass_card.dart
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_colors.dart'; // also exports AppColorsX extension
 
 /// Frosted-glass surface container.
 ///
@@ -22,12 +22,13 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final border = accent != null
-        ? AppColors.glassBorderAccent(accent!)
-        : AppColors.glassBorder;
+        ? colors.glassBorderAccent(accent!)
+        : colors.glassBorder;
     final bg = accent != null
-        ? AppColors.glassCardAccent(accent!)
-        : AppColors.glassCard;
+        ? colors.glassCardAccent(accent!)
+        : colors.glassCard;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),

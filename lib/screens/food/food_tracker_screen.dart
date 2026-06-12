@@ -22,7 +22,6 @@ class FoodTrackerScreen extends ConsumerWidget {
     final service = ref.watch(firebaseServiceProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.darkBase,
       body: SafeArea(
         child: Column(
           children: [
@@ -75,7 +74,7 @@ class _DateNav extends ConsumerWidget {
           ),
           const Spacer(),
           IconButton(
-            icon: Icon(Icons.chevron_left_rounded, color: AppColors.textMuted),
+            icon: Icon(Icons.chevron_left_rounded, color: context.appColors.textMuted),
             onPressed: () => ref.read(foodDateProvider.notifier).state =
                 date.subtract(const Duration(days: 1)),
           ),
@@ -114,8 +113,8 @@ class _DateNav extends ConsumerWidget {
             icon: Icon(
               Icons.chevron_right_rounded,
               color: isToday
-                  ? AppColors.textSubtle
-                  : AppColors.textMuted,
+                  ? context.appColors.textSubtle
+                  : context.appColors.textMuted,
             ),
             onPressed: isToday
                 ? null
@@ -260,7 +259,7 @@ class _CalorieSummaryContent extends StatelessWidget {
                     painter: _CalorieRingPainter(
                       progress: progress,
                       ringColor: ringColor,
-                      bgColor: AppColors.glassBorder,
+                      bgColor: context.appColors.glassBorder,
                     ),
                   ),
                   Column(
@@ -272,7 +271,7 @@ class _CalorieSummaryContent extends StatelessWidget {
                           fontSize: 22,
                           color: isOver
                               ? AppColors.statusOverdue
-                              : AppColors.textPrimary,
+                              : context.appColors.textPrimary,
                         ),
                       ),
                       Text(
@@ -290,6 +289,7 @@ class _CalorieSummaryContent extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _statRow(
+                    context,
                     'Goal',
                     '${goal.toInt()} kcal',
                     onTap: service == null
@@ -298,6 +298,7 @@ class _CalorieSummaryContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   _statRow(
+                    context,
                     isOver ? 'Over by' : 'Remaining',
                     '${isOver ? (consumed - goal).toInt() : remaining.toInt()} kcal',
                     valueColor: isOver
@@ -306,6 +307,7 @@ class _CalorieSummaryContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   _statRow(
+                    context,
                     'Consumed',
                     '${(progress * 100).toInt()}%',
                     valueColor: ringColor,
@@ -337,7 +339,7 @@ class _CalorieSummaryContent extends StatelessWidget {
     );
   }
 
-  Widget _statRow(String label, String value,
+  Widget _statRow(BuildContext context, String label, String value,
       {VoidCallback? onTap, Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -352,13 +354,13 @@ class _CalorieSummaryContent extends StatelessWidget {
                 value,
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.textPrimary,
+                  color: valueColor ?? context.appColors.textPrimary,
                 ),
               ),
               if (onTap != null) ...[
                 const SizedBox(width: 3),
                 Icon(Icons.edit_outlined,
-                    size: 11, color: AppColors.textSubtle),
+                    size: 11, color: context.appColors.textSubtle),
               ],
             ],
           ),
@@ -372,12 +374,12 @@ class _CalorieSummaryContent extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: Text('Daily Calorie Goal', style: AppTextStyles.headlineSmall),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.bodyMedium.copyWith(color: null),
           decoration: InputDecoration(
             labelText: 'Calories (kcal)',
             labelStyle: AppTextStyles.bodySmall,
@@ -437,7 +439,7 @@ class _MacroBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.glassBorder,
+              backgroundColor: context.appColors.glassBorder,
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 8,
             ),
@@ -523,7 +525,7 @@ class _MealSection extends StatelessWidget {
             ),
           ),
           if (entries.isNotEmpty) ...[
-            Divider(height: 1, color: AppColors.glassBorder),
+            Divider(height: 1, color: context.appColors.glassBorder),
             ...entries.asMap().entries.map((mapEntry) {
               final isLast = mapEntry.key == entries.length - 1;
               return _FoodTile(
@@ -578,7 +580,7 @@ class _FoodTile extends StatelessWidget {
         return await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                backgroundColor: AppColors.darkSurface,
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 title: Text('Remove entry?', style: AppTextStyles.headlineSmall),
                 content: Text('Remove "${entry.name}"?',
                     style: AppTextStyles.bodyMedium),
@@ -702,7 +704,7 @@ class _AddFoodFormState extends State<_AddFoodForm> {
                         size: 14,
                         color: selected
                             ? color
-                            : AppColors.textSubtle),
+                            : context.appColors.textSubtle),
                     const SizedBox(width: 4),
                     Text(mt.label),
                   ],
@@ -711,7 +713,7 @@ class _AddFoodFormState extends State<_AddFoodForm> {
                 onSelected: (_) => setState(() => _selectedMeal = mt),
                 selectedColor: color.withValues(alpha: 0.15),
                 labelStyle: AppTextStyles.bodySmall.copyWith(
-                  color: selected ? color : AppColors.textMuted,
+                  color: selected ? color : context.appColors.textMuted,
                   fontWeight:
                       selected ? FontWeight.w600 : FontWeight.w400,
                 ),
@@ -722,7 +724,7 @@ class _AddFoodFormState extends State<_AddFoodForm> {
           TextField(
             controller: _nameCtrl,
             textCapitalization: TextCapitalization.sentences,
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.bodyMedium.copyWith(color: null),
             decoration: InputDecoration(
               labelText: 'Food name *',
               labelStyle: AppTextStyles.bodySmall,
@@ -736,7 +738,7 @@ class _AddFoodFormState extends State<_AddFoodForm> {
             controller: _calsCtrl,
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.bodyMedium.copyWith(color: null),
             decoration: InputDecoration(
               labelText: 'Calories (kcal) *',
               labelStyle: AppTextStyles.bodySmall,
@@ -796,7 +798,7 @@ class _AddFoodFormState extends State<_AddFoodForm> {
       controller: ctrl,
       keyboardType:
           const TextInputType.numberWithOptions(decimal: true),
-      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+      style: AppTextStyles.bodySmall.copyWith(color: null),
       decoration: InputDecoration(
         labelText: '$label (g)',
         labelStyle: AppTextStyles.bodySmall.copyWith(

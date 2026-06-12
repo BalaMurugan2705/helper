@@ -31,7 +31,7 @@ class AuroraHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.glassBorderAccent(accent)),
+        border: Border.all(color: context.appColors.glassBorderAccent(accent)),
       ),
       child: Stack(
         children: [

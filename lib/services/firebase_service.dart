@@ -22,6 +22,10 @@ class FirebaseService {
   CollectionReference get _budgetRef =>
       _db.collection('users').doc(userId).collection('budget_categories');
 
+  // Root-level collection — global defaults, not user-scoped.
+  CollectionReference get _globalBudgetRef =>
+      _db.collection('budget_categories');
+
   CollectionReference get _healthRef =>
       _db.collection('users').doc(userId).collection('health_habits');
 
@@ -111,10 +115,15 @@ class FirebaseService {
   // ─── Budget Categories ────────────────────────────────────────────
 
   Stream<List<BudgetCategory>> budgetStream() {
-    return _budgetRef
-        .orderBy('category')
-        .snapshots()
-        .map((snap) => snap.docs.map<BudgetCategory>(BudgetCategory.fromFirestore).toList());
+    final now = DateTime.now();
+    return _budgetRef.snapshots().map((snap) {
+      final all =
+          snap.docs.map<BudgetCategory>(BudgetCategory.fromFirestore).toList();
+      return all
+          .where((c) => c.month == now.month && c.year == now.year)
+          .toList()
+        ..sort((a, b) => a.category.compareTo(b.category));
+    });
   }
 
   Future<void> addBudgetCategory(BudgetCategory cat) async {
@@ -129,17 +138,169 @@ class FirebaseService {
     await _budgetRef.doc(id).delete();
   }
 
+  Future<void> rolloverBudgetToNextMonth() async {
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month + 1);
+
+    final snap = await _budgetRef.get();
+
+    // Use raw data so legacy docs (no month/year field) are not misidentified.
+    final alreadyExists = snap.docs.any((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return data['month'] == next.month && data['year'] == next.year;
+    });
+    if (alreadyExists) return;
+
+    final current = snap.docs
+        .where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return data['month'] == now.month && data['year'] == now.year;
+        })
+        .map<BudgetCategory>(BudgetCategory.fromFirestore)
+        .toList();
+    if (current.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final cat in current) {
+      batch.set(
+        _budgetRef.doc(),
+        {
+          ...cat.toFirestore(),
+          'month': next.month,
+          'year': next.year,
+          'spentAmount': 0.0,
+        },
+      );
+    }
+    await batch.commit();
+  }
+
+  // Hardcoded template — stored once in the global collection.
+  static const _defaultTemplates = [
+    ('Rent / EMI',       15000.0, 'home'),
+    ('Groceries',         5000.0, 'shopping_basket'),
+    ('Food & Dining',     3000.0, 'restaurant'),
+    ('Transport',         2000.0, 'directions_car'),
+    ('Utilities',         2000.0, 'bolt'),
+    ('Health & Medical',  1500.0, 'local_hospital'),
+    ('Shopping',          2000.0, 'shopping_bag'),
+    ('Entertainment',     1000.0, 'movie'),
+    ('Education',         1000.0, 'school'),
+    ('Savings',           5000.0, 'savings'),
+    ('Others',            1000.0, 'category'),
+  ];
+
+  // Step 1: write defaults to the root-level collection (once, for all users).
+  Future<void> _ensureGlobalDefaults() async {
+    final snap = await _globalBudgetRef.get();
+    if (snap.docs.isNotEmpty) return;
+    final batch = _db.batch();
+    for (final (name, amount, icon) in _defaultTemplates) {
+      batch.set(_globalBudgetRef.doc(), {
+        'category': name,
+        'budgetAmount': amount,
+        'icon': icon,
+        'color': '#7C4DFF',
+      });
+    }
+    await batch.commit();
+  }
+
+  // Step 2: copy global defaults into this user's folder for the current month.
+  Future<void> seedDefaultBudgetCategories() async {
+    await _ensureGlobalDefaults();
+
+    final now = DateTime.now();
+    final userSnap = await _budgetRef.get();
+    final hasThisMonth = userSnap.docs.any((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return data['month'] == now.month && data['year'] == now.year;
+    });
+    if (hasThisMonth) return;
+
+    final globalSnap = await _globalBudgetRef.get();
+    final batch = _db.batch();
+    for (final doc in globalSnap.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      batch.set(_budgetRef.doc(), {
+        'category': data['category'],
+        'budgetAmount': data['budgetAmount'],
+        'spentAmount': 0.0,
+        'icon': data['icon'] ?? 'category',
+        'color': data['color'] ?? '#7C4DFF',
+        'month': now.month,
+        'year': now.year,
+      });
+    }
+    await batch.commit();
+  }
+
   // ─── Health Habits ────────────────────────────────────────────────
 
+  static String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
   Stream<List<HealthHabit>> healthStream() {
-    return _healthRef
-        .orderBy('name')
-        .snapshots()
-        .map((snap) => snap.docs.map<HealthHabit>(HealthHabit.fromFirestore).toList());
+    final today = _todayKey();
+    final yesterday = () {
+      final d = DateTime.now().subtract(const Duration(days: 1));
+      return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    }();
+
+    return _healthRef.orderBy('name').snapshots().asyncMap((snap) async {
+      final habits = <HealthHabit>[];
+      final batch = _db.batch();
+      bool hasBatchWork = false;
+
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final lastReset = data['lastResetDate'] as String? ?? '';
+
+        if (lastReset != today) {
+          final oldValue = (data['todayValue'] ?? 0.0).toDouble();
+          final goal = (data['goal'] ?? 1.0).toDouble();
+
+          // Archive yesterday's value into dailyLog
+          final rawLog = data['dailyLog'] as Map<String, dynamic>? ?? {};
+          final updatedLog = Map<String, double>.from(
+              rawLog.map((k, v) => MapEntry(k, (v as num).toDouble())));
+          if (lastReset.isNotEmpty) updatedLog[lastReset] = oldValue;
+
+          int streak = data['streak'] ?? 0;
+          if (lastReset.isEmpty) {
+            streak = 0;
+          } else if (oldValue >= goal && lastReset == yesterday) {
+            streak += 1;
+          } else if (lastReset != yesterday) {
+            streak = 0;
+          }
+
+          batch.update(_healthRef.doc(doc.id), {
+            'todayValue': 0.0,
+            'lastResetDate': today,
+            'dailyLog': updatedLog,
+            'streak': streak,
+          });
+          hasBatchWork = true;
+
+          habits.add(HealthHabit.fromFirestore(doc)
+              .copyWith(todayValue: 0.0, dailyLog: updatedLog, streak: streak));
+        } else {
+          habits.add(HealthHabit.fromFirestore(doc));
+        }
+      }
+
+      if (hasBatchWork) await batch.commit();
+      return habits;
+    });
   }
 
   Future<void> addHealthHabit(HealthHabit habit) async {
-    await _healthRef.add(habit.toFirestore());
+    final data = habit.toFirestore();
+    data['lastResetDate'] = _todayKey();
+    await _healthRef.add(data);
   }
 
   Future<void> updateHealthHabit(HealthHabit habit) async {
@@ -150,11 +311,19 @@ class FirebaseService {
     await _healthRef.doc(id).delete();
   }
 
-  Future<void> logHabitValue(String id, double value) async {
+  Future<void> markHabitDone(String id, bool done) async {
+    await _healthRef.doc(id).update({'todayValue': done ? 1.0 : 0.0});
+  }
+
+  Future<void> logHabitValue(String id, double delta) async {
     final doc = await _healthRef.doc(id).get();
     final habit = HealthHabit.fromFirestore(doc);
-    final newValue = (habit.todayValue + value).clamp(0.0, habit.goal * 2);
+    final newValue = (habit.todayValue + delta).clamp(0.0, double.infinity);
     await _healthRef.doc(id).update({'todayValue': newValue});
+  }
+
+  Future<void> setHabitValue(String id, double value) async {
+    await _healthRef.doc(id).update({'todayValue': value.clamp(0.0, double.infinity)});
   }
 
   Future<void> resetHabitValue(String id) async {

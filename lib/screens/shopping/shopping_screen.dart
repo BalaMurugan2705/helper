@@ -89,7 +89,7 @@ class ShoppingScreen extends ConsumerWidget {
                     Container(
                       width: 1,
                       height: 40,
-                      color: AppColors.glassBorder,
+                      color: context.appColors.glassBorder,
                     ),
                     Expanded(
                       child: Padding(
@@ -132,13 +132,13 @@ class ShoppingScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: selected
                             ? AppColors.accentShopping.withValues(alpha: 0.18)
-                            : AppColors.glassCard,
+                            : context.appColors.glassCard,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selected
                               ? AppColors.accentShopping
                                   .withValues(alpha: 0.50)
-                              : AppColors.glassBorder,
+                              : context.appColors.glassBorder,
                         ),
                       ),
                       child: Text(
@@ -146,7 +146,7 @@ class ShoppingScreen extends ConsumerWidget {
                         style: AppTextStyles.labelSmall.copyWith(
                           color: selected
                               ? AppColors.accentShopping
-                              : AppColors.textMuted,
+                              : context.appColors.textMuted,
                           fontWeight: selected
                               ? FontWeight.w700
                               : FontWeight.w500,
@@ -170,7 +170,7 @@ class ShoppingScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.shopping_cart_outlined,
-                            color: AppColors.textSubtle, size: 48),
+                            color: context.appColors.textSubtle, size: 48),
                         const SizedBox(height: 12),
                         Text('Nothing here',
                             style: AppTextStyles.bodyMedium),
@@ -270,7 +270,7 @@ class ShoppingItemCard extends ConsumerWidget {
           onChanged: (v) => service.toggleItemBought(item.id, v!),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          side: BorderSide(color: AppColors.glassBorder),
+          side: BorderSide(color: context.appColors.glassBorder),
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           visualDensity: VisualDensity.compact,
         ),
@@ -281,12 +281,12 @@ class ShoppingItemCard extends ConsumerWidget {
                 ? const StatusChip.done()
                 : StatusChip.custom(
                     label: 'To Buy',
-                    accent: AppColors.textMuted,
+                    accent: context.appColors.textMuted,
                   ),
             const SizedBox(width: 4),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert,
-                  color: AppColors.textSubtle, size: 18),
+                  color: context.appColors.textSubtle, size: 18),
               onSelected: (v) {
                 if (v == 'edit') {
                   _showAddEditModal(context, null, item,

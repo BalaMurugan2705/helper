@@ -7,6 +7,8 @@ class BudgetCategory {
   final double spentAmount;
   final String icon;
   final String color;
+  final int month;
+  final int year;
 
   BudgetCategory({
     required this.id,
@@ -15,6 +17,8 @@ class BudgetCategory {
     required this.spentAmount,
     required this.icon,
     required this.color,
+    required this.month,
+    required this.year,
   });
 
   double get percentUsed =>
@@ -26,6 +30,7 @@ class BudgetCategory {
 
   factory BudgetCategory.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final now = DateTime.now();
     return BudgetCategory(
       id: doc.id,
       category: data['category'] ?? '',
@@ -33,6 +38,8 @@ class BudgetCategory {
       spentAmount: (data['spentAmount'] ?? 0).toDouble(),
       icon: data['icon'] ?? 'category',
       color: data['color'] ?? '#7C4DFF',
+      month: (data['month'] as int?) ?? now.month,
+      year: (data['year'] as int?) ?? now.year,
     );
   }
 
@@ -43,6 +50,8 @@ class BudgetCategory {
       'spentAmount': spentAmount,
       'icon': icon,
       'color': color,
+      'month': month,
+      'year': year,
     };
   }
 
@@ -53,6 +62,8 @@ class BudgetCategory {
     double? spentAmount,
     String? icon,
     String? color,
+    int? month,
+    int? year,
   }) {
     return BudgetCategory(
       id: id ?? this.id,
@@ -61,6 +72,8 @@ class BudgetCategory {
       spentAmount: spentAmount ?? this.spentAmount,
       icon: icon ?? this.icon,
       color: color ?? this.color,
+      month: month ?? this.month,
+      year: year ?? this.year,
     );
   }
 }

@@ -11,12 +11,17 @@ import '../../core/widgets/glass_bottom_sheet.dart';
 import '../../models/budget_category.dart';
 import '../../providers/providers.dart';
 
-class BudgetScreen extends ConsumerWidget {
+class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final budgetAsync = ref.watch(budgetProvider);
+  ConsumerState<BudgetScreen> createState() => _BudgetScreenState();
+}
+
+class _BudgetScreenState extends ConsumerState<BudgetScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final budgetAsync = ref.watch(budgetWithSpentProvider);
 
     final totalBudget = budgetAsync.when(
       data: (c) => c.fold(0.0, (s, x) => s + x.budgetAmount),
@@ -49,7 +54,7 @@ class BudgetScreen extends ConsumerWidget {
           ),
           Expanded(
             child: budgetAsync.when(
-              data: (cats) => _buildContent(context, ref, cats),
+              data: (cats) => _buildContent(context, cats),
               loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
               error: (e, _) => Center(child: Text('Error: $e')),
             ),
@@ -68,7 +73,7 @@ class BudgetScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(
-      BuildContext context, WidgetRef ref, List<BudgetCategory> cats) {
+      BuildContext context, List<BudgetCategory> cats) {
     if (cats.isEmpty) {
       return Center(
         child: Column(
@@ -81,6 +86,24 @@ class BudgetScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text('Add categories to start tracking',
                 style: AppTextStyles.bodyMedium),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await ref
+                    .read(firebaseServiceProvider)
+                    ?.seedDefaultBudgetCategories();
+              },
+              icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+              label: const Text('Load Default Categories'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accentBudget,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
+              ),
+            ),
           ],
         ),
       );
@@ -90,11 +113,41 @@ class BudgetScreen extends ConsumerWidget {
     final overBudget  = cats.where((c) => c.isOverBudget).length;
     final over = totalSpent > totalBudget;
 
+    final nextMonth = DateTime(DateTime.now().year, DateTime.now().month + 1);
+    final nextLabel =
+        '${const ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][nextMonth.month - 1]} ${nextMonth.year}';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Rollover row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final service = ref.read(firebaseServiceProvider);
+                  if (service == null) return;
+                  await service.rolloverBudgetToNextMonth();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Budget copied to $nextLabel'),
+                        backgroundColor: AppColors.accentBudget,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.content_copy_rounded, size: 16),
+                label: Text('Copy to $nextLabel'),
+                style: TextButton.styleFrom(
+                    foregroundColor: AppColors.accentBudget),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           // Summary card
           GlassCard(
             accent: AppColors.accentBudget,
@@ -391,7 +444,6 @@ class _BudgetCategoryModal extends StatefulWidget {
 class _BudgetCategoryModalState extends State<_BudgetCategoryModal> {
   late TextEditingController _categoryCtrl;
   late TextEditingController _budgetCtrl;
-  late TextEditingController _spentCtrl;
   String _icon = 'category';
 
   @override
@@ -400,8 +452,6 @@ class _BudgetCategoryModalState extends State<_BudgetCategoryModal> {
     _categoryCtrl = TextEditingController(text: widget.category?.category ?? '');
     _budgetCtrl = TextEditingController(
         text: widget.category?.budgetAmount.toStringAsFixed(0) ?? '');
-    _spentCtrl = TextEditingController(
-        text: widget.category?.spentAmount.toStringAsFixed(0) ?? '');
     _icon = widget.category?.icon ?? 'category';
   }
 
@@ -409,7 +459,6 @@ class _BudgetCategoryModalState extends State<_BudgetCategoryModal> {
   void dispose() {
     _categoryCtrl.dispose();
     _budgetCtrl.dispose();
-    _spentCtrl.dispose();
     super.dispose();
   }
 
@@ -423,23 +472,10 @@ class _BudgetCategoryModalState extends State<_BudgetCategoryModal> {
             controller: _categoryCtrl,
             decoration: const InputDecoration(labelText: 'Category Name')),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                  controller: _budgetCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Budget (₹)')),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                  controller: _spentCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Amount Spent (₹)')),
-            ),
-          ],
+        TextField(
+          controller: _budgetCtrl,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Monthly Budget (₹)'),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -454,13 +490,16 @@ class _BudgetCategoryModalState extends State<_BudgetCategoryModal> {
             ),
             onPressed: () async {
               if (_categoryCtrl.text.isEmpty) return;
+              final now = DateTime.now();
               final newCat = BudgetCategory(
                 id: widget.category?.id ?? '',
                 category: _categoryCtrl.text.trim(),
                 budgetAmount: double.tryParse(_budgetCtrl.text) ?? 0,
-                spentAmount: double.tryParse(_spentCtrl.text) ?? 0,
+                spentAmount: 0,
                 icon: _icon,
                 color: '#7C4DFF',
+                month: widget.category?.month ?? now.month,
+                year: widget.category?.year ?? now.year,
               );
               if (widget.category == null) {
                 await widget.service.addBudgetCategory(newCat);
