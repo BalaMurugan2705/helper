@@ -247,7 +247,7 @@ class ShoppingItemCard extends ConsumerWidget {
     switch (item.priority) {
       case ItemPriority.essential: return AppColors.statusOverdue;
       case ItemPriority.high:      return AppColors.statusPending;
-      case ItemPriority.medium:    return AppColors.accentCleaning;
+      case ItemPriority.medium:    return AppColors.statusPending; // amber — semantic for medium priority
       case ItemPriority.basic:     return AppColors.statusDone;
     }
   }
@@ -279,7 +279,10 @@ class ShoppingItemCard extends ConsumerWidget {
           children: [
             item.bought
                 ? const StatusChip.done()
-                : const StatusChip.pending(),
+                : StatusChip.custom(
+                    label: 'To Buy',
+                    accent: AppColors.textMuted,
+                  ),
             const SizedBox(width: 4),
             PopupMenuButton<String>(
               icon: Icon(Icons.more_vert,

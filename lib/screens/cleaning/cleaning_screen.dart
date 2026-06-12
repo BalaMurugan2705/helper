@@ -301,6 +301,19 @@ class _CleaningTaskCardState extends ConsumerState<CleaningTaskCard> {
     return 'Due in ${widget.task.daysUntilDue} day${widget.task.daysUntilDue > 1 ? "s" : ""}';
   }
 
+  Widget _taskStatusChip(CleaningTask task) {
+    if (task.status == TaskStatus.done) {
+      return const StatusChip.done();
+    }
+    if (task.daysOverdue > 7) {
+      return StatusChip.custom(label: 'Critical', accent: AppColors.statusOverdue);
+    }
+    if (task.isOverdue) {
+      return const StatusChip.overdue();
+    }
+    return const StatusChip.pending();
+  }
+
   @override
   Widget build(BuildContext context) {
     final service = ref.read(firebaseServiceProvider)!;
@@ -314,14 +327,7 @@ class _CleaningTaskCardState extends ConsumerState<CleaningTaskCard> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StatusChip.custom(
-            label: widget.task.status == TaskStatus.done
-                ? 'Done'
-                : widget.task.isOverdue
-                    ? 'Overdue'
-                    : 'Pending',
-            accent: _statusColor,
-          ),
+          _taskStatusChip(widget.task),
           const SizedBox(width: 4),
           if (widget.task.status != TaskStatus.done)
             GestureDetector(
