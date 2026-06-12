@@ -1,27 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_theme.dart';
-
-// ── Palette ───────────────────────────────────────────────────────────
-const _kGreen  = Color(0xFF1D9E75);
-const _kBlue   = Color(0xFF185FA5);
-const _kPurple = Color(0xFF534AB7);
-const _kAmber  = Color(0xFFBA7517);
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/glass_tile.dart';
 
 // ── Data models ───────────────────────────────────────────────────────
 class _Dish {
   final String name;
-  final Color dot;
-  const _Dish(this.name, this.dot);
+  const _Dish(this.name);
 }
 
 class _CardData {
-  final Color badgeBg;
-  final Color badgeFg;
   final String badge;
   final String title;
   final String body;
-  const _CardData(this.badgeBg, this.badgeFg, this.badge, this.title, this.body);
+  const _CardData(this.badge, this.title, this.body);
 }
 
 // ── Screen ────────────────────────────────────────────────────────────
@@ -30,90 +24,40 @@ class PcosGuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return DefaultTabController(
       length: 5,
       child: Column(
         children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.primaryPurple, AppTheme.accentTeal],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.health_and_safety_rounded,
-                        color: Colors.white, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('PCOS Guide',
-                            style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700)),
-                        Text('Meals · Gym · Avoid · Support · Routine',
-                            style: GoogleFonts.inter(
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text('ADMIN ONLY',
-                        style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8)),
-                  ),
-                ],
-              ),
-            ),
+          // Aurora Hero header
+          AuroraHero(
+            accent: AppColors.accentPcos,
+            eyebrow: 'WELLNESS · GUIDE',
+            title: 'PCOS Guide',
+            subtitle: 'Admin reference',
           ),
 
           // Tab bar
           Container(
-            color: cs.surface,
+            color: AppColors.darkSurface,
             child: TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
               indicator: BoxDecoration(
-                color: _kGreen,
+                color: AppColors.accentPcos,
                 borderRadius: BorderRadius.circular(20),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
-              labelColor: Colors.white,
-              unselectedLabelColor: cs.onSurface.withValues(alpha: 0.6),
-              labelStyle: GoogleFonts.inter(
-                  fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: GoogleFonts.inter(
-                  fontSize: 13, fontWeight: FontWeight.w500),
+              labelColor: AppColors.darkBase,
+              unselectedLabelColor: AppColors.textMuted,
+              labelStyle: AppTextStyles.labelSmall.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: AppTextStyles.labelSmall.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               tabs: const [
@@ -155,110 +99,110 @@ class _MealsTab extends StatelessWidget {
       children: [
         const _SectionTitle('Breakfast  ·  08:30 AM'),
         const _DishGrid([
-          _Dish('Vegetable oats upma with flaxseed', _kGreen),
-          _Dish('Ragi dosa with coconut chutney', _kGreen),
-          _Dish('Moong dal chilla with mint chutney', _kGreen),
-          _Dish('Boiled eggs + sautéed vegetables', _kGreen),
-          _Dish('Greek yogurt with berries & seeds', _kGreen),
-          _Dish('Whole wheat dosa with vegetable filling', _kGreen),
-          _Dish('Paneer bhurji with roti', _kGreen),
-          _Dish('Chia seed pudding with almond milk', _kGreen),
-          _Dish('Oats porridge with cinnamon & walnuts', _kGreen),
-          _Dish('Idli with sambar (ragi/oat — no rice)', _kGreen),
-          _Dish('Ragi (Finger Millet) Idli with onion-tomato chutney', _kGreen),
-          _Dish('Pesarattu (Green Gram Dosa) with moong dal & ginger', _kGreen),
-          _Dish('Kuthiraivali (Barnyard Millet) Pongal with moong dal & pepper', _kGreen),
-          _Dish('Varagu (Kodo Millet) Upma with beans, carrots & peas', _kGreen),
-          _Dish('Adai Dosa (Multi-lentil crepe) — Chana, Toor & Moong dal', _kGreen),
-          _Dish('Oats Kozhukattai (Steamed dumplings) with spicy tempering', _kGreen),
-          _Dish('Sorghum (Jowar/Cholam) Puttu with kadala curry', _kGreen),
-          _Dish('Samai (Little Millet) Curd Rice with Greek yogurt', _kGreen),
-          _Dish('Sprouted Moong Sundal with fresh grated coconut', _kGreen),
-          _Dish('Thinai (Foxtail Millet) Ven Pongal', _kGreen),
-          _Dish('Masala Oats Paniyaram (cast-iron, minimal oil)', _kGreen),
-          _Dish('Egg Appam (brown rice/millet base) with 2 egg whites', _kGreen),
-          _Dish('Besan & Murungai Keerai (Drumstick Leaf) Adai', _kGreen),
+          _Dish('Vegetable oats upma with flaxseed'),
+          _Dish('Ragi dosa with coconut chutney'),
+          _Dish('Moong dal chilla with mint chutney'),
+          _Dish('Boiled eggs + sautéed vegetables'),
+          _Dish('Greek yogurt with berries & seeds'),
+          _Dish('Whole wheat dosa with vegetable filling'),
+          _Dish('Paneer bhurji with roti'),
+          _Dish('Chia seed pudding with almond milk'),
+          _Dish('Oats porridge with cinnamon & walnuts'),
+          _Dish('Idli with sambar (ragi/oat — no rice)'),
+          _Dish('Ragi (Finger Millet) Idli with onion-tomato chutney'),
+          _Dish('Pesarattu (Green Gram Dosa) with moong dal & ginger'),
+          _Dish('Kuthiraivali (Barnyard Millet) Pongal with moong dal & pepper'),
+          _Dish('Varagu (Kodo Millet) Upma with beans, carrots & peas'),
+          _Dish('Adai Dosa (Multi-lentil crepe) — Chana, Toor & Moong dal'),
+          _Dish('Oats Kozhukattai (Steamed dumplings) with spicy tempering'),
+          _Dish('Sorghum (Jowar/Cholam) Puttu with kadala curry'),
+          _Dish('Samai (Little Millet) Curd Rice with Greek yogurt'),
+          _Dish('Sprouted Moong Sundal with fresh grated coconut'),
+          _Dish('Thinai (Foxtail Millet) Ven Pongal'),
+          _Dish('Masala Oats Paniyaram (cast-iron, minimal oil)'),
+          _Dish('Egg Appam (brown rice/millet base) with 2 egg whites'),
+          _Dish('Besan & Murungai Keerai (Drumstick Leaf) Adai'),
         ]),
         const _SectionTitle('Lunch  ·  01:30 PM'),
         const _DishGrid([
-          _Dish('Brown rice + dal + mixed sabzi', _kBlue),
-          _Dish('Quinoa pulao with vegetables', _kBlue),
-          _Dish('Rajma with jowar roti', _kBlue),
-          _Dish('Palak paneer + 1 multigrain roti', _kBlue),
-          _Dish('Grilled chicken + salad + lentil soup', _kBlue),
-          _Dish('Methi thepla with low-fat curd', _kBlue),
-          _Dish('Mung bean salad with lemon dressing', _kBlue),
-          _Dish('Baingan bharta + brown rice', _kBlue),
-          _Dish('Chickpea curry + quinoa', _kBlue),
-          _Dish('Tuna / grilled fish + vegetables', _kBlue),
-          _Dish('Soya chunks curry + millets', _kBlue),
-          _Dish('Lentil soup + multigrain bread', _kBlue),
-          _Dish('Thinai (Foxtail Millet) Sambar Rice with extra vegetables', _kBlue),
-          _Dish('Varagu (Kodo Millet) Curd Rice + Sambar Vengayam Poriyal', _kBlue),
-          _Dish('Keerai Masiyal (Mashed spinach) + Kala Chana Sundal', _kBlue),
-          _Dish('Meen Kulambu (Fish Curry) — Rohu/Bangda + Cabbage Poriyal', _kBlue),
-          _Dish('Kootu (Lentil veggie stew) using Chow-Chow or Lauki', _kBlue),
-          _Dish('Kandanthippili Rasam + Boiled Eggs', _kBlue),
-          _Dish('Vazhaithandu (Banana Stem) Poriyal — great for water retention', _kBlue),
-          _Dish('Karuveppilai (Curry Leaf) Rice made with Samai Millet', _kBlue),
-          _Dish('Chicken Chettinad (low oil) + Beans & Carrot Poriyal', _kBlue),
-          _Dish('Murungai Keerai (Drumstick Leaf) Soup + Grilled Paneer', _kBlue),
-          _Dish('Sura Puttu (Steamed fish scramble) — very high protein', _kBlue),
-          _Dish('Peerkangai (Ridge Gourd) Thogayal with millet rotis', _kBlue),
-          _Dish('Vendakkai (Okra) Fry (air-fried) + Moong Dal Kootu', _kBlue),
-          _Dish('Pavakkai (Bitter Gourd) Pitlai (lentil-based curry)', _kBlue),
-          _Dish('Kollu (Horse Gram) Rasam — known for fat burning', _kBlue),
-          _Dish('Millet Bisi Bele Bath with heavy vegetables', _kBlue),
-          _Dish('Sundakkai (Turkey Berry) Vatha Kulambu — great for iron', _kBlue),
+          _Dish('Brown rice + dal + mixed sabzi'),
+          _Dish('Quinoa pulao with vegetables'),
+          _Dish('Rajma with jowar roti'),
+          _Dish('Palak paneer + 1 multigrain roti'),
+          _Dish('Grilled chicken + salad + lentil soup'),
+          _Dish('Methi thepla with low-fat curd'),
+          _Dish('Mung bean salad with lemon dressing'),
+          _Dish('Baingan bharta + brown rice'),
+          _Dish('Chickpea curry + quinoa'),
+          _Dish('Tuna / grilled fish + vegetables'),
+          _Dish('Soya chunks curry + millets'),
+          _Dish('Lentil soup + multigrain bread'),
+          _Dish('Thinai (Foxtail Millet) Sambar Rice with extra vegetables'),
+          _Dish('Varagu (Kodo Millet) Curd Rice + Sambar Vengayam Poriyal'),
+          _Dish('Keerai Masiyal (Mashed spinach) + Kala Chana Sundal'),
+          _Dish('Meen Kulambu (Fish Curry) — Rohu/Bangda + Cabbage Poriyal'),
+          _Dish('Kootu (Lentil veggie stew) using Chow-Chow or Lauki'),
+          _Dish('Kandanthippili Rasam + Boiled Eggs'),
+          _Dish('Vazhaithandu (Banana Stem) Poriyal — great for water retention'),
+          _Dish('Karuveppilai (Curry Leaf) Rice made with Samai Millet'),
+          _Dish('Chicken Chettinad (low oil) + Beans & Carrot Poriyal'),
+          _Dish('Murungai Keerai (Drumstick Leaf) Soup + Grilled Paneer'),
+          _Dish('Sura Puttu (Steamed fish scramble) — very high protein'),
+          _Dish('Peerkangai (Ridge Gourd) Thogayal with millet rotis'),
+          _Dish('Vendakkai (Okra) Fry (air-fried) + Moong Dal Kootu'),
+          _Dish('Pavakkai (Bitter Gourd) Pitlai (lentil-based curry)'),
+          _Dish('Kollu (Horse Gram) Rasam — known for fat burning'),
+          _Dish('Millet Bisi Bele Bath with heavy vegetables'),
+          _Dish('Sundakkai (Turkey Berry) Vatha Kulambu — great for iron'),
         ]),
         const _SectionTitle('Dinner  ·  07:30 PM'),
         const _DishGrid([
-          _Dish('Grilled chicken/fish + stir-fried veggies', _kPurple),
-          _Dish('Vegetable daliya (broken wheat)', _kPurple),
-          _Dish('Egg curry + 1 roti (no rice at night)', _kPurple),
-          _Dish('Paneer tikka + salad', _kPurple),
-          _Dish('Tofu stir-fry with quinoa', _kPurple),
-          _Dish('Moong dal khichdi (light version)', _kPurple),
-          _Dish('Zucchini soup + whole wheat toast', _kPurple),
-          _Dish('Masoor dal + 1 jowar roti', _kPurple),
-          _Dish('Baked salmon / fish with vegetables', _kPurple),
-          _Dish('Mushroom stir-fry with millets', _kPurple),
-          _Dish('Millet Semiya Upma with double the vegetables', _kPurple),
-          _Dish('Oats Kanji (Savory — ginger & garlic)', _kPurple),
-          _Dish('Grilled Nethili (Anchovies) with turmeric & pepper', _kPurple),
-          _Dish('Vegetable Manchow Soup (home-made)', _kPurple),
-          _Dish('Moong Dal Soup with drumstick leaves', _kPurple),
-          _Dish('Paneer Salad with South Indian tempering (mustard/curry leaves)', _kPurple),
-          _Dish('Stir-fried Shrimp/Prawns with pepper and onions', _kPurple),
-          _Dish('Mushroom Pepper Fry (dry version, no rice)', _kPurple),
-          _Dish('Cauliflower Rice Biryani (grated cauliflower base)', _kPurple),
-          _Dish('Steamed Sprouts with Lemon', _kPurple),
-          _Dish('Tofu Stir-fry with curry leaf pesto', _kPurple),
-          _Dish('Clear Chicken Broth with cilantro', _kPurple),
-          _Dish('Cinnamon Milk (warm water + cinnamon bark)', _kPurple),
+          _Dish('Grilled chicken/fish + stir-fried veggies'),
+          _Dish('Vegetable daliya (broken wheat)'),
+          _Dish('Egg curry + 1 roti (no rice at night)'),
+          _Dish('Paneer tikka + salad'),
+          _Dish('Tofu stir-fry with quinoa'),
+          _Dish('Moong dal khichdi (light version)'),
+          _Dish('Zucchini soup + whole wheat toast'),
+          _Dish('Masoor dal + 1 jowar roti'),
+          _Dish('Baked salmon / fish with vegetables'),
+          _Dish('Mushroom stir-fry with millets'),
+          _Dish('Millet Semiya Upma with double the vegetables'),
+          _Dish('Oats Kanji (Savory — ginger & garlic)'),
+          _Dish('Grilled Nethili (Anchovies) with turmeric & pepper'),
+          _Dish('Vegetable Manchow Soup (home-made)'),
+          _Dish('Moong Dal Soup with drumstick leaves'),
+          _Dish('Paneer Salad with South Indian tempering (mustard/curry leaves)'),
+          _Dish('Stir-fried Shrimp/Prawns with pepper and onions'),
+          _Dish('Mushroom Pepper Fry (dry version, no rice)'),
+          _Dish('Cauliflower Rice Biryani (grated cauliflower base)'),
+          _Dish('Steamed Sprouts with Lemon'),
+          _Dish('Tofu Stir-fry with curry leaf pesto'),
+          _Dish('Clear Chicken Broth with cilantro'),
+          _Dish('Cinnamon Milk (warm water + cinnamon bark)'),
         ]),
         const _SectionTitle('Snacks & Metabolism Boosters  ·  04:30 PM'),
         const _DishGrid([
-          _Dish('Handful of almonds + walnuts', _kAmber),
-          _Dish('Roasted makhana (fox nuts)', _kAmber),
-          _Dish('Apple + peanut butter (small)', _kAmber),
-          _Dish('Hummus + cucumber sticks', _kAmber),
-          _Dish('Sprouts chaat (no sev)', _kAmber),
-          _Dish('Boiled egg + black pepper', _kAmber),
-          _Dish('Coconut water (1 glass)', _kAmber),
-          _Dish('Flaxseed & pumpkin seed mix', _kAmber),
-          _Dish('Low-sugar smoothie (berries + spinach)', _kAmber),
-          _Dish('Curd with jeera powder', _kAmber),
-          _Dish('Roasted chana (handful)', _kAmber),
-          _Dish('Sliced guava or papaya', _kAmber),
-          _Dish('Roasted Peanuts (small handful)', _kAmber),
-          _Dish('Spearmint Tea or Ginger Lemon Tea (No Sugar)', _kAmber),
-          _Dish('Cucumber & Tomato slices with chilli powder', _kAmber),
-          _Dish('Neer Mor (Buttermilk) with ginger, green chilli & curry leaves', _kAmber),
-          _Dish('Roasted Lotus Seeds (Makhana)', _kAmber),
-          _Dish('Steamed Sweet Corn (small portion)', _kAmber),
-          _Dish('Walnuts & Soaked Almonds', _kAmber),
-          _Dish('Guava or Papaya slices', _kAmber),
+          _Dish('Handful of almonds + walnuts'),
+          _Dish('Roasted makhana (fox nuts)'),
+          _Dish('Apple + peanut butter (small)'),
+          _Dish('Hummus + cucumber sticks'),
+          _Dish('Sprouts chaat (no sev)'),
+          _Dish('Boiled egg + black pepper'),
+          _Dish('Coconut water (1 glass)'),
+          _Dish('Flaxseed & pumpkin seed mix'),
+          _Dish('Low-sugar smoothie (berries + spinach)'),
+          _Dish('Curd with jeera powder'),
+          _Dish('Roasted chana (handful)'),
+          _Dish('Sliced guava or papaya'),
+          _Dish('Roasted Peanuts (small handful)'),
+          _Dish('Spearmint Tea or Ginger Lemon Tea (No Sugar)'),
+          _Dish('Cucumber & Tomato slices with chilli powder'),
+          _Dish('Neer Mor (Buttermilk) with ginger, green chilli & curry leaves'),
+          _Dish('Roasted Lotus Seeds (Makhana)'),
+          _Dish('Steamed Sweet Corn (small portion)'),
+          _Dish('Walnuts & Soaked Almonds'),
+          _Dish('Guava or Papaya slices'),
         ]),
         const _TipBox(
             'Spices that help: cinnamon (improves insulin sensitivity), fenugreek (methi), turmeric, and ginger — add to everyday cooking.'),
@@ -280,21 +224,17 @@ class _GymTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         const _CardGrid([
-          _CardData(Color(0xFFEAF3DE), Color(0xFF3B6D11), 'Best',
-              'Strength Training',
+          _CardData('Best', 'Strength Training',
               'Reduces insulin resistance. 3x/week — squats, deadlifts, lunges, rows. Builds muscle = burns fat at rest.'),
-          _CardData(Color(0xFFEAF3DE), Color(0xFF3B6D11), 'Best',
-              'HIIT (2x/week)',
+          _CardData('Best', 'HIIT (2x/week)',
               'Short bursts: 20s on / 40s off × 10 rounds. Powerful for hormonal balance. Keep sessions under 30 min.'),
-          _CardData(Color(0xFFE6F1FB), Color(0xFF185FA5), 'Good', 'Walking',
+          _CardData('Good', 'Walking',
               'Brisk 30 min walk daily — especially after meals. Lowers cortisol and helps with blood sugar spikes.'),
-          _CardData(Color(0xFFE6F1FB), Color(0xFF185FA5), 'Good', 'Yoga',
-              '1–2x/week. Supta Baddha Konasana, Butterfly, Child\'s Pose. Reduces stress hormones (cortisol).'),
-          _CardData(Color(0xFFFAEEDA), Color(0xFF854F0B), 'Moderate',
-              'Cycling / Swimming',
+          _CardData('Good', 'Yoga',
+              'Exercise 1–2x/week. Supta Baddha Konasana, Butterfly, Child\'s Pose. Reduces stress hormones (cortisol).'),
+          _CardData('Moderate', 'Cycling / Swimming',
               'Low-impact cardio. 45 min sessions. Good joint health, low stress on adrenals.'),
-          _CardData(Color(0xFFFCEBEB), Color(0xFFA32D2D), 'Avoid',
-              'Excessive Cardio',
+          _CardData('Avoid', 'Excessive Cardio',
               'Long daily cardio raises cortisol, worsening PCOS. No 90+ min cardio sessions.'),
         ]),
         const _SectionTitle('Weekly Plan'),
@@ -367,12 +307,12 @@ class _AvoidTab extends StatelessWidget {
         const SizedBox(height: 12),
         const _SectionTitle('Limit (Not Eliminate)'),
         const _DishGrid([
-          _Dish('White rice (max 1 small serving/day)', _kAmber),
-          _Dish('Potato (avoid fried; boiled ok rarely)', _kAmber),
-          _Dish('Sweetened curd / flavored yogurt', _kAmber),
-          _Dish('Fruit juices (even "natural")', _kAmber),
-          _Dish('Coconut oil (small amounts ok)', _kAmber),
-          _Dish('Salt (excess worsens bloating)', _kAmber),
+          _Dish('White rice (max 1 small serving/day)'),
+          _Dish('Potato (avoid fried; boiled ok rarely)'),
+          _Dish('Sweetened curd / flavored yogurt'),
+          _Dish('Fruit juices (even "natural")'),
+          _Dish('Coconut oil (small amounts ok)'),
+          _Dish('Salt (excess worsens bloating)'),
         ]),
         const SizedBox(height: 16),
       ],
@@ -391,29 +331,21 @@ class _SupportTab extends StatelessWidget {
       children: [
         const _SectionTitle('What You Can Do as Her Partner'),
         const _CardGrid([
-          _CardData(Color(0xFFEAF3DE), Color(0xFF3B6D11), 'Nutrition',
-              'Eat the same food',
+          _CardData('Nutrition', 'Eat the same food',
               'Don\'t eat junk at home. If she\'s avoiding white rice, you avoid it too at shared meals. It makes a huge difference.'),
-          _CardData(Color(0xFFEAF3DE), Color(0xFF3B6D11), 'Gym',
-              'Train together',
+          _CardData('Gym', 'Train together',
               'Having a gym partner = higher consistency. Spot her lifts, do HIIT together, and celebrate small wins.'),
-          _CardData(Color(0xFFE6F1FB), Color(0xFF185FA5), 'Emotional',
-              'Understand the symptoms',
+          _CardData('Emotional', 'Understand the symptoms',
               'Mood swings, fatigue, and irregular periods are hormonal — not personal. Be patient, not dismissive.'),
-          _CardData(Color(0xFFE6F1FB), Color(0xFF185FA5), 'Emotional',
-              'Never comment on weight',
+          _CardData('Emotional', 'Never comment on weight',
               'PCOS causes weight retention even with effort. Acknowledge her hard work, not the number on the scale.'),
-          _CardData(Color(0xFFFAEEDA), Color(0xFF854F0B), 'Practical',
-              'Help with meal prep',
+          _CardData('Practical', 'Help with meal prep',
               'Sunday meal prep together — cook dals, cut veggies, portion snacks. Halves her effort during weekdays.'),
-          _CardData(Color(0xFFFAEEDA), Color(0xFF854F0B), 'Practical',
-              'Track with her',
+          _CardData('Practical', 'Track with her',
               'Use apps like MyFitnessPal or Flo together. Knowing her cycle phases helps plan gym intensity.'),
-          _CardData(Color(0xFFE6F1FB), Color(0xFF185FA5), 'Health',
-              'Doctor appointments',
+          _CardData('Health', 'Doctor appointments',
               'Go with her to gynecologist/endocrinologist visits. Shows you take it seriously and helps understand treatment plans.'),
-          _CardData(Color(0xFFEAF3DE), Color(0xFF3B6D11), 'Sleep',
-              'Protect her sleep',
+          _CardData('Sleep', 'Protect her sleep',
               'Sleep is medicine for PCOS. Keep consistent sleep times. Avoid late-night screen time together.'),
         ]),
         const _TipBox(
@@ -493,11 +425,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
-        style: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
+        style: AppTextStyles.headlineSmall,
       ),
     );
   }
@@ -509,7 +437,6 @@ class _DishGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: LayoutBuilder(builder: (context, constraints) {
@@ -521,36 +448,9 @@ class _DishGrid extends StatelessWidget {
           children: dishes
               .map((d) => SizedBox(
                     width: itemW,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: cs.onSurface.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 5),
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                  color: d.dot,
-                                  shape: BoxShape.circle),
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(d.name,
-                                style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: cs.onSurface,
-                                    height: 1.4)),
-                          ),
-                        ],
-                      ),
+                    child: GlassTile(
+                      dotColor: AppColors.accentPcos,
+                      title: d.name,
                     ),
                   ))
               .toList(),
@@ -566,7 +466,6 @@ class _CardGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: LayoutBuilder(builder: (context, constraints) {
@@ -578,14 +477,10 @@ class _CardGrid extends StatelessWidget {
           children: cards
               .map((c) => SizedBox(
                     width: itemW,
-                    child: Container(
+                    child: GlassCard(
+                      accent: AppColors.accentPcos,
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        border: Border.all(
-                            color: cs.onSurface.withValues(alpha: 0.1)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      borderRadius: 12,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -593,28 +488,24 @@ class _CardGrid extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: c.badgeBg,
+                              color: AppColors.accentPcos
+                                  .withValues(alpha: 0.20),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Text(c.badge,
-                                style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: c.badgeFg)),
+                            child: Text(
+                              c.badge,
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.accentPcos,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(c.title,
-                              style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: cs.onSurface)),
+                              style: AppTextStyles.titleMedium),
                           const SizedBox(height: 4),
                           Text(c.body,
-                              style: GoogleFonts.inter(
-                                  fontSize: 11.5,
-                                  color:
-                                      cs.onSurface.withValues(alpha: 0.65),
-                                  height: 1.5)),
+                              style: AppTextStyles.bodySmall),
                         ],
                       ),
                     ),
@@ -633,54 +524,44 @@ class _RoutineBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border:
-            Border.all(color: cs.onSurface.withValues(alpha: 0.1)),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface)),
-          const SizedBox(height: 6),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 3),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: cs.onSurface.withValues(alpha: 0.35),
-                          shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GlassCard(
+        accent: AppColors.accentPcos,
+        padding: const EdgeInsets.all(12),
+        borderRadius: 10,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: AppTextStyles.titleMedium),
+            const SizedBox(height: 6),
+            ...items.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.accentPcos
+                                .withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(item,
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color:
-                                  cs.onSurface.withValues(alpha: 0.7),
-                              height: 1.5)),
-                    ),
-                  ],
-                ),
-              )),
-        ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(item,
+                            style: AppTextStyles.bodySmall),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        ),
       ),
     );
   }
@@ -693,29 +574,22 @@ class _AvoidRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border.all(color: const Color(0xFFF09595)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: RichText(
-        text: TextSpan(children: [
-          TextSpan(
-              text: '$bold  —  ',
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface)),
-          TextSpan(
-              text: detail,
-              style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: cs.onSurface.withValues(alpha: 0.65))),
-        ]),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: GlassCard(
+        accent: AppColors.accentPcos,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        borderRadius: 8,
+        child: RichText(
+          text: TextSpan(children: [
+            TextSpan(
+                text: '$bold  —  ',
+                style: AppTextStyles.titleMedium.copyWith(fontSize: 13)),
+            TextSpan(
+                text: detail,
+                style: AppTextStyles.bodySmall.copyWith(fontSize: 13)),
+          ]),
+        ),
       ),
     );
   }
@@ -727,23 +601,23 @@ class _TipBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: cs.onSurface.withValues(alpha: 0.04),
-        border: const Border(left: BorderSide(color: _kGreen, width: 3)),
+        color: AppColors.accentPcos.withValues(alpha: 0.06),
+        border: Border(
+            left: BorderSide(color: AppColors.accentPcos, width: 3)),
         borderRadius: const BorderRadius.only(
           topRight: Radius.circular(8),
           bottomRight: Radius.circular(8),
         ),
       ),
       child: Text(text,
-          style: GoogleFonts.inter(
-              fontSize: 12.5,
-              color: cs.onSurface,
-              height: 1.6)),
+          style: AppTextStyles.bodySmall.copyWith(
+            fontSize: 12.5,
+            height: 1.6,
+          )),
     );
   }
 }
