@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/glass_tile.dart';
 import '../../services/notification_service.dart'
     hide NotificationSettings;
 import '../../services/notification_service.dart' show NotificationSettings;
@@ -168,172 +171,226 @@ class _NotificationSettingsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     if (_settings == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Notifications',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        centerTitle: false,
-      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 80),
         children: [
-          // ── Permission banner ────────────────────────────────
-          if (!_permissionGranted)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(14),
-                border:
-                    Border.all(color: Colors.orange.withOpacity(0.35)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Notification permission not granted. Please enable it in app settings.',
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: Colors.orange),
+          // ── Aurora Header ────────────────────────────────────
+          AuroraHero(
+            accent: AppColors.accentDashboard,
+            eyebrow: 'SETTINGS',
+            title: 'Notifications',
+            subtitle: 'Manage your notification preferences',
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Permission banner ──────────────────────────
+                if (!_permissionGranted)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Notification permission not granted. Please enable it in app settings.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                                color: Colors.orange),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
 
-          // ── Task Reminders ───────────────────────────────────
-          _SectionHeader(
-            icon: Icons.cleaning_services_rounded,
-            label: 'Task Reminders',
-            color: AppTheme.primaryPurple,
-          ),
-          _NotifTile(
-            icon: Icons.today_rounded,
-            title: 'Daily Cleaning Digest',
-            subtitle: 'Reminds you of overdue & due-today tasks',
-            enabled: _taskEnabled,
-            time: _taskTime,
-            onToggle: _toggleTask,
-            onTimeTap: _changeTaskTime,
-            fmtTime: _fmtTime,
-          ),
-          const SizedBox(height: 20),
-
-          // ── Health Reminders ─────────────────────────────────
-          _SectionHeader(
-            icon: Icons.favorite_rounded,
-            label: 'Health Reminders',
-            color: Colors.pink,
-          ),
-          _NotifTile(
-            icon: Icons.self_improvement_rounded,
-            title: 'Daily Habit Check-in',
-            subtitle: 'Evening prompt to complete your health habits',
-            enabled: _healthEnabled,
-            time: _healthTime,
-            onToggle: _toggleHealth,
-            onTimeTap: _changeHealthTime,
-            fmtTime: _fmtTime,
-          ),
-          const SizedBox(height: 20),
-
-          // ── Meal Reminders ───────────────────────────────────
-          _SectionHeader(
-            icon: Icons.restaurant_menu_rounded,
-            label: 'Meal Reminders',
-            color: const Color(0xFFFF9800),
-          ),
-          _NotifTile(
-            icon: Icons.free_breakfast_rounded,
-            title: 'Breakfast',
-            subtitle: 'Log breakfast & start your calorie count',
-            enabled: _breakfastEnabled,
-            time: _breakfastTime,
-            onToggle: _toggleBreakfast,
-            onTimeTap: _changeBreakfastTime,
-            fmtTime: _fmtTime,
-            accentColor: const Color(0xFFFF9800),
-          ),
-          const SizedBox(height: 8),
-          _NotifTile(
-            icon: Icons.lunch_dining_rounded,
-            title: 'Lunch',
-            subtitle: 'Midday reminder to log your meal',
-            enabled: _lunchEnabled,
-            time: _lunchTime,
-            onToggle: _toggleLunch,
-            onTimeTap: _changeLunchTime,
-            fmtTime: _fmtTime,
-            accentColor: const Color(0xFF4CAF50),
-          ),
-          const SizedBox(height: 8),
-          _NotifTile(
-            icon: Icons.dinner_dining_rounded,
-            title: 'Dinner',
-            subtitle: 'Evening meal logging reminder',
-            enabled: _dinnerEnabled,
-            time: _dinnerTime,
-            onToggle: _toggleDinner,
-            onTimeTap: _changeDinnerTime,
-            fmtTime: _fmtTime,
-            accentColor: const Color(0xFF2196F3),
-          ),
-          const SizedBox(height: 24),
-
-          // ── Cancel all ───────────────────────────────────────
-          OutlinedButton.icon(
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text('Cancel All Notifications',
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700)),
-                  content: Text(
-                      'This will cancel all scheduled notifications.',
-                      style: GoogleFonts.inter()),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel')),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Confirm',
-                          style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
+                // ── Task Reminders ─────────────────────────────
+                Text('Task Reminders',
+                    style: AppTextStyles.headlineSmall
+                        .copyWith(color: AppColors.textPrimary)),
+                const SizedBox(height: 10),
+                GlassCard(
+                  padding: const EdgeInsets.all(0),
+                  child: Column(
+                    children: [
+                      GlassTile(
+                        dotColor: AppColors.accentDashboard,
+                        title: 'Daily Cleaning Digest',
+                        subtitle: 'Reminds you of overdue & due-today tasks',
+                        trailing: Switch(
+                          value: _taskEnabled,
+                          onChanged: _toggleTask,
+                          activeThumbColor: AppColors.accentDashboard,
+                        ),
+                      ),
+                      if (_taskEnabled)
+                        _TimeRow(
+                          accent: AppColors.accentDashboard,
+                          label: 'Daily at ${_fmtTime(_taskTime)}',
+                          onTap: _changeTaskTime,
+                        ),
+                    ],
+                  ),
                 ),
-              );
-              if (confirm == true) {
-                await _svc.cancelAll();
-                await _load();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('All notifications cancelled.')),
-                  );
-                }
-              }
-            },
-            icon: const Icon(Icons.notifications_off_rounded,
-                color: Colors.red),
-            label: Text('Cancel All Notifications',
-                style: GoogleFonts.inter(color: Colors.red)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.red),
-              minimumSize: const Size.fromHeight(48),
+                const SizedBox(height: 20),
+
+                // ── Health Reminders ───────────────────────────
+                Text('Health Reminders',
+                    style: AppTextStyles.headlineSmall
+                        .copyWith(color: AppColors.textPrimary)),
+                const SizedBox(height: 10),
+                GlassCard(
+                  padding: const EdgeInsets.all(0),
+                  child: Column(
+                    children: [
+                      GlassTile(
+                        dotColor: AppColors.accentDashboard,
+                        title: 'Daily Habit Check-in',
+                        subtitle:
+                            'Evening prompt to complete your health habits',
+                        trailing: Switch(
+                          value: _healthEnabled,
+                          onChanged: _toggleHealth,
+                          activeThumbColor: AppColors.accentDashboard,
+                        ),
+                      ),
+                      if (_healthEnabled)
+                        _TimeRow(
+                          accent: AppColors.accentDashboard,
+                          label: 'Daily at ${_fmtTime(_healthTime)}',
+                          onTap: _changeHealthTime,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Meal Reminders ─────────────────────────────
+                Text('Meal Reminders',
+                    style: AppTextStyles.headlineSmall
+                        .copyWith(color: AppColors.textPrimary)),
+                const SizedBox(height: 10),
+                GlassCard(
+                  padding: const EdgeInsets.all(0),
+                  child: Column(
+                    children: [
+                      GlassTile(
+                        dotColor: AppColors.accentDashboard,
+                        title: 'Breakfast',
+                        subtitle: 'Log breakfast & start your calorie count',
+                        trailing: Switch(
+                          value: _breakfastEnabled,
+                          onChanged: _toggleBreakfast,
+                          activeThumbColor: AppColors.accentDashboard,
+                        ),
+                      ),
+                      if (_breakfastEnabled)
+                        _TimeRow(
+                          accent: AppColors.accentDashboard,
+                          label: 'Daily at ${_fmtTime(_breakfastTime)}',
+                          onTap: _changeBreakfastTime,
+                        ),
+                      GlassTile(
+                        dotColor: AppColors.accentDashboard,
+                        title: 'Lunch',
+                        subtitle: 'Midday reminder to log your meal',
+                        trailing: Switch(
+                          value: _lunchEnabled,
+                          onChanged: _toggleLunch,
+                          activeThumbColor: AppColors.accentDashboard,
+                        ),
+                      ),
+                      if (_lunchEnabled)
+                        _TimeRow(
+                          accent: AppColors.accentDashboard,
+                          label: 'Daily at ${_fmtTime(_lunchTime)}',
+                          onTap: _changeLunchTime,
+                        ),
+                      GlassTile(
+                        dotColor: AppColors.accentDashboard,
+                        title: 'Dinner',
+                        subtitle: 'Evening meal logging reminder',
+                        trailing: Switch(
+                          value: _dinnerEnabled,
+                          onChanged: _toggleDinner,
+                          activeThumbColor: AppColors.accentDashboard,
+                        ),
+                      ),
+                      if (_dinnerEnabled)
+                        _TimeRow(
+                          accent: AppColors.accentDashboard,
+                          label: 'Daily at ${_fmtTime(_dinnerTime)}',
+                          onTap: _changeDinnerTime,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Cancel all ─────────────────────────────────
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text('Cancel All Notifications',
+                            style: AppTextStyles.headlineSmall),
+                        content: Text(
+                            'This will cancel all scheduled notifications.',
+                            style: AppTextStyles.bodyMedium),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Confirm',
+                                style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await _svc.cancelAll();
+                      await _load();
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('All notifications cancelled.')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.notifications_off_rounded,
+                      color: Colors.red),
+                  label: Text('Cancel All Notifications',
+                      style: AppTextStyles.labelLarge
+                          .copyWith(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -342,153 +399,42 @@ class _NotificationSettingsScreenState
   }
 }
 
-// ─── Section header ───────────────────────────────────────────────
+// ─── Time row ─────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  final IconData icon;
+class _TimeRow extends StatelessWidget {
+  final Color accent;
   final String label;
-  final Color color;
-  const _SectionHeader(
-      {required this.icon, required this.label, required this.color});
+  final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: color,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Notification tile ────────────────────────────────────────────
-
-class _NotifTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool enabled;
-  final TimeOfDay time;
-  final ValueChanged<bool> onToggle;
-  final VoidCallback onTimeTap;
-  final String Function(TimeOfDay) fmtTime;
-  final Color accentColor;
-
-  const _NotifTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.enabled,
-    required this.time,
-    required this.onToggle,
-    required this.onTimeTap,
-    required this.fmtTime,
-    this.accentColor = AppTheme.primaryPurple,
+  const _TimeRow({
+    required this.accent,
+    required this.label,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      decoration: BoxDecoration(
-        color: enabled
-            ? accentColor.withOpacity(0.06)
-            : cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: enabled
-              ? accentColor.withOpacity(0.3)
-              : cs.onSurface.withOpacity(0.08),
-        ),
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            contentPadding:
-                const EdgeInsets.fromLTRB(14, 4, 8, 4),
-            leading: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(enabled ? 0.15 : 0.07),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon,
-                  color:
-                      accentColor.withOpacity(enabled ? 1.0 : 0.4),
-                  size: 20),
-            ),
-            title: Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 14,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.access_time_rounded,
+                size: 15, color: accent.withValues(alpha: 0.7)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: accent,
                 fontWeight: FontWeight.w600,
-                color: cs.onSurface
-                    .withOpacity(enabled ? 1.0 : 0.5),
               ),
             ),
-            subtitle: Text(
-              subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: cs.onSurface.withOpacity(0.45),
-              ),
-            ),
-            trailing: Switch(
-              value: enabled,
-              onChanged: onToggle,
-              activeColor: accentColor,
-            ),
-          ),
-          if (enabled) ...[
-            Divider(
-                height: 1,
-                color: accentColor.withOpacity(0.15)),
-            InkWell(
-              onTap: onTimeTap,
-              borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(14)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time_rounded,
-                        size: 15,
-                        color: accentColor.withOpacity(0.7)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Daily at ${fmtTime(time)}',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: accentColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.edit_rounded,
-                        size: 14,
-                        color: accentColor.withOpacity(0.5)),
-                  ],
-                ),
-              ),
-            ),
+            const Spacer(),
+            Icon(Icons.edit_rounded,
+                size: 14, color: accent.withValues(alpha: 0.5)),
           ],
-        ],
+        ),
       ),
     );
   }
