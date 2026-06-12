@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:shimmer/shimmer.dart';
 import 'dart:math' as math;
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/aurora_hero.dart';
+import '../../core/widgets/glass_card.dart';
 import '../../providers/providers.dart';
 import '../../models/budget_category.dart';
 import '../../models/cleaning_task.dart';
@@ -38,136 +39,102 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(context, ref, selectedMonth),
-            const SizedBox(height: 20),
-            _buildStatCards(
-                context, overdueTasks, itemsToBuy, budgetUsed, healthScore),
-            const SizedBox(height: 20),
-            _buildTodaysNutrition(context, foodAsync, calorieGoalAsync),
-            const SizedBox(height: 20),
-            _buildMonthlyOverview(
-                context, ref, selectedMonth, monthExpenses,
-                monthTotal, prevTotal, byCategory),
-            const SizedBox(height: 20),
-            _buildChartsRow(context, budgetAsync, cleaningAsync),
-            const SizedBox(height: 20),
-            _buildUrgentItems(context, cleaningAsync, shoppingAsync),
-            const SizedBox(height: 20),
-            _buildTodaysPlan(
-                context, cleaningAsync, shoppingAsync, budgetAsync, healthAsync),
-            const SizedBox(height: 80),
+            // ── Aurora Hero Header ─────────────────────────────
+            AuroraHero(
+              accent: AppColors.accentDashboard,
+              eyebrow: 'DASHBOARD',
+              title: 'HomeSync',
+              subtitle: '$overdueTasks overdue · Budget ${budgetUsed.toInt()}% · Health ${healthScore.toInt()}',
+              trailing: _buildMonthSelector(context, ref, selectedMonth),
+            ),
+            // ── Content with padding ──────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatCards(
+                      context, overdueTasks, itemsToBuy, budgetUsed, healthScore),
+                  const SizedBox(height: 24),
+                  _buildTodaysNutrition(context, foodAsync, calorieGoalAsync),
+                  const SizedBox(height: 24),
+                  _buildMonthlyOverview(
+                      context, ref, selectedMonth, monthExpenses,
+                      monthTotal, prevTotal, byCategory),
+                  const SizedBox(height: 24),
+                  _buildChartsRow(context, budgetAsync, cleaningAsync),
+                  const SizedBox(height: 24),
+                  _buildUrgentItems(context, cleaningAsync, shoppingAsync),
+                  const SizedBox(height: 24),
+                  _buildTodaysPlan(
+                      context, cleaningAsync, shoppingAsync, budgetAsync, healthAsync),
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref, DateTime selectedMonth) {
+  /// Month selector widget used as the trailing element in AuroraHero.
+  Widget _buildMonthSelector(BuildContext context, WidgetRef ref, DateTime selectedMonth) {
     final now = DateTime.now();
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const monthShort = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final dateStr =
-        '${days[now.weekday - 1]}, ${monthShort[now.month - 1]} ${now.day}, ${now.year}';
-    final cs = Theme.of(context).colorScheme;
+    const monthNames = ['January','February','March','April','May','June',
+                        'July','August','September','October','November','December'];
     final isCurrentMonth =
         selectedMonth.year == now.year && selectedMonth.month == now.month;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MonthNavButton(
+            icon: Icons.chevron_left_rounded,
+            onTap: () {
+              ref.read(dashboardMonthProvider.notifier).state =
+                  DateTime(selectedMonth.year, selectedMonth.month - 1);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Dashboard',
-                  style: GoogleFonts.inter(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: cs.onSurface,
+                  monthNames[selectedMonth.month - 1],
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: isCurrentMonth
+                        ? AppColors.textPrimary
+                        : AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
-                  dateStr,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: cs.onSurface.withOpacity(0.5),
-                  ),
+                  '${selectedMonth.year}',
+                  style: AppTextStyles.bodySmall,
                 ),
               ],
             ),
-            // Month selector
-            Container(
-              decoration: BoxDecoration(
-                color: cs.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cs.onSurface.withOpacity(0.1)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _MonthNavButton(
-                    icon: Icons.chevron_left_rounded,
-                    onTap: () {
-                      ref.read(dashboardMonthProvider.notifier).state =
-                          DateTime(selectedMonth.year, selectedMonth.month - 1);
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Column(
-                      children: [
-                        Text(
-                          monthNames[selectedMonth.month - 1],
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: isCurrentMonth
-                                ? AppTheme.primaryPurple
-                                : cs.onSurface,
-                          ),
-                        ),
-                        Text(
-                          '${selectedMonth.year}',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: cs.onSurface.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _MonthNavButton(
-                    icon: Icons.chevron_right_rounded,
-                    onTap: isCurrentMonth
-                        ? null
-                        : () {
-                            ref.read(dashboardMonthProvider.notifier).state =
-                                DateTime(selectedMonth.year,
-                                    selectedMonth.month + 1);
-                          },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+          _MonthNavButton(
+            icon: Icons.chevron_right_rounded,
+            onTap: isCurrentMonth
+                ? null
+                : () {
+                    ref.read(dashboardMonthProvider.notifier).state =
+                        DateTime(selectedMonth.year, selectedMonth.month + 1);
+                  },
+          ),
+        ],
+      ),
     );
   }
 
@@ -179,7 +146,6 @@ class DashboardScreen extends ConsumerWidget {
       double monthTotal,
       double prevTotal,
       Map<String, double> byCategory) {
-    final cs = Theme.of(context).colorScheme;
     const monthNames = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -191,18 +157,17 @@ class DashboardScreen extends ConsumerWidget {
     final isUp = diff > 0;
 
     const colors = [
-      Color(0xFF7C4DFF), Color(0xFF00BFA5), Color(0xFFFF6B6B),
-      Color(0xFFFFD200), Color(0xFF4CAF50), Color(0xFF2196F3),
-      Color(0xFFE91E63), Color(0xFFFF9800),
+      AppColors.accentDashboard, AppColors.accentCleaning, AppColors.accentBudget,
+      Color(0xFF1A9E6E), Color(0xFFF59E0B), Color(0xFFDC3545),
+      AppColors.accentShopping, AppColors.accentHealth,
     ];
 
     final sorted = byCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return GlassCard(
+      accent: AppColors.accentDashboard,
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Section title + total
@@ -211,24 +176,18 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   'Monthly Expenses',
-                  style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface),
+                  style: AppTextStyles.headlineSmall,
                 ),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryPurple.withOpacity(0.1),
+                    color: AppColors.accentDashboard.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     monthLabel,
-                    style: GoogleFonts.inter(
-                        color: AppTheme.primaryPurple,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600),
+                    style: AppTextStyles.labelAccent.copyWith(color: AppColors.accentDashboard),
                   ),
                 ),
               ],
@@ -241,17 +200,12 @@ class DashboardScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Total Spent',
-                          style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: cs.onSurface.withOpacity(0.5))),
+                      Text('Total Spent', style: AppTextStyles.bodySmall),
                       const SizedBox(height: 2),
                       Text(
                         '₹${monthTotal.toStringAsFixed(0)}',
-                        style: GoogleFonts.inter(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: cs.onSurface),
+                        style: AppTextStyles.statDisplay.copyWith(
+                            color: AppColors.accentDashboard),
                       ),
                     ],
                   ),
@@ -262,8 +216,8 @@ class DashboardScreen extends ConsumerWidget {
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: isUp
-                          ? Colors.red.withOpacity(0.1)
-                          : Colors.green.withOpacity(0.1),
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -282,17 +236,15 @@ class DashboardScreen extends ConsumerWidget {
                           children: [
                             Text(
                               '${isUp ? '+' : ''}${diffPct.toStringAsFixed(1)}%',
-                              style: GoogleFonts.inter(
+                              style: AppTextStyles.bodyMedium.copyWith(
                                   color: isUp ? Colors.red : Colors.green,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13),
+                                  fontWeight: FontWeight.w700),
                             ),
                             Text(
                               'vs prev month',
-                              style: GoogleFonts.inter(
+                              style: AppTextStyles.bodySmall.copyWith(
                                   color: (isUp ? Colors.red : Colors.green)
-                                      .withOpacity(0.7),
-                                  fontSize: 9),
+                                      .withValues(alpha: 0.7)),
                             ),
                           ],
                         ),
@@ -308,18 +260,13 @@ class DashboardScreen extends ConsumerWidget {
                 child: Center(
                   child: Text(
                     'No expenses recorded for $monthLabel',
-                    style: GoogleFonts.inter(
-                        color: cs.onSurface.withOpacity(0.4), fontSize: 13),
+                    style: AppTextStyles.bodyMedium,
                   ),
                 ),
               )
             else ...[
               const SizedBox(height: 16),
-              Text('By Category',
-                  style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface.withOpacity(0.5))),
+              Text('By Category', style: AppTextStyles.labelLarge),
               const SizedBox(height: 10),
               ...sorted.take(5).toList().asMap().entries.map<Widget>((entry) {
                 final idx = entry.key;
@@ -343,8 +290,7 @@ class DashboardScreen extends ConsumerWidget {
                         width: 90,
                         child: Text(
                           cat.key,
-                          style: GoogleFonts.inter(
-                              fontSize: 12, color: cs.onSurface),
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -358,7 +304,7 @@ class DashboardScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: val,
-                              backgroundColor: color.withOpacity(0.1),
+                              backgroundColor: color.withValues(alpha: 0.1),
                               valueColor:
                                   AlwaysStoppedAnimation<Color>(color),
                               minHeight: 8,
@@ -372,10 +318,9 @@ class DashboardScreen extends ConsumerWidget {
                         child: Text(
                           '₹${cat.value.toStringAsFixed(0)}',
                           textAlign: TextAlign.right,
-                          style: GoogleFonts.inter(
-                              fontSize: 11,
+                          style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: cs.onSurface),
+                              color: AppColors.textPrimary),
                         ),
                       ),
                     ],
@@ -387,9 +332,7 @@ class DashboardScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     '+${sorted.length - 5} more categories',
-                    style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: cs.onSurface.withOpacity(0.4)),
+                    style: AppTextStyles.bodySmall,
                   ),
                 ),
             ],
@@ -402,83 +345,69 @@ class DashboardScreen extends ConsumerWidget {
                   _InfoChip(
                     icon: Icons.receipt_long_rounded,
                     label: '${monthExpenses.length} transactions',
-                    color: AppTheme.primaryPurple,
+                    color: AppColors.accentDashboard,
                   ),
                   if (sorted.isNotEmpty)
                     _InfoChip(
                       icon: Icons.category_rounded,
                       label: 'Top: ${sorted.first.key}',
-                      color: AppTheme.accentTeal,
+                      color: AppColors.accentBudget,
                     ),
                 ],
               ),
             ],
           ],
         ),
-      ),
     );
   }
 
   Widget _buildStatCards(BuildContext context, int overdueTasks, int itemsToBuy,
       double budgetUsed, double healthScore) {
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width > 700;
-    final cards = [
-      _StatCardData(
-        title: 'Overdue Tasks',
-        value: '$overdueTasks',
-        subtitle: 'Need attention',
-        icon: Icons.warning_amber_rounded,
-        gradient: const [Color(0xFFFF6B6B), Color(0xFFEE0979)],
-      ),
-      _StatCardData(
-        title: 'To Buy',
-        value: '$itemsToBuy',
-        subtitle: 'Items pending',
-        icon: Icons.shopping_cart_rounded,
-        gradient: const [Color(0xFF43E97B), Color(0xFF38F9D7)],
-      ),
-      _StatCardData(
-        title: 'Budget Used',
-        value: '${(budgetUsed * 100).toStringAsFixed(0)}%',
-        subtitle: 'of total budget',
-        icon: Icons.account_balance_wallet_rounded,
-        gradient: budgetUsed > 1.0
-            ? const [Color(0xFFFF6B6B), Color(0xFFEE0979)]
-            : budgetUsed > 0.9
-                ? const [Color(0xFFFFD200), Color(0xFFFF8C00)]
-                : const [Color(0xFF7C4DFF), Color(0xFF00BFA5)],
-      ),
-      _StatCardData(
-        title: 'Health Score',
-        value: '${healthScore.toStringAsFixed(0)}%',
-        subtitle: 'Daily habits',
-        icon: Icons.favorite_rounded,
-        gradient: const [Color(0xFF4776E6), Color(0xFF8E54E9)],
-      ),
-    ];
-
-    if (isWide) {
-      return Row(
-        children: cards
-            .map((c) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: _StatCard(data: c),
-                  ),
-                ))
-            .toList(),
-      );
-    }
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.4,
-      children: cards.map((c) => _StatCard(data: c)).toList(),
-    );
+    return Row(children: [
+      Expanded(child: GlassCard(
+        accent: AppColors.accentDashboard,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('OVERDUE', style: AppTextStyles.labelLarge),
+          const SizedBox(height: 4),
+          Text('$overdueTasks', style: AppTextStyles.statDisplay.copyWith(color: AppColors.accentDashboard)),
+          Text('tasks', style: AppTextStyles.bodySmall),
+        ]),
+      )),
+      const SizedBox(width: 10),
+      Expanded(child: GlassCard(
+        accent: AppColors.accentShopping,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('TO BUY', style: AppTextStyles.labelLarge),
+          const SizedBox(height: 4),
+          Text('$itemsToBuy', style: AppTextStyles.statDisplay.copyWith(color: AppColors.accentShopping)),
+          Text('items', style: AppTextStyles.bodySmall),
+        ]),
+      )),
+      const SizedBox(width: 10),
+      Expanded(child: GlassCard(
+        accent: AppColors.accentBudget,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('BUDGET', style: AppTextStyles.labelLarge),
+          const SizedBox(height: 4),
+          Text('${budgetUsed.toInt()}%', style: AppTextStyles.statDisplay.copyWith(color: AppColors.accentBudget)),
+          Text('used', style: AppTextStyles.bodySmall),
+        ]),
+      )),
+      const SizedBox(width: 10),
+      Expanded(child: GlassCard(
+        accent: AppColors.accentHealth,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('HEALTH', style: AppTextStyles.labelLarge),
+          const SizedBox(height: 4),
+          Text('${healthScore.toInt()}', style: AppTextStyles.statDisplay.copyWith(color: AppColors.accentHealth)),
+          Text('score', style: AppTextStyles.bodySmall),
+        ]),
+      )),
+    ]);
   }
 
   Widget _buildChartsRow(BuildContext context,
@@ -513,125 +442,108 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildBudgetPieChart(BuildContext context, AsyncValue<List<BudgetCategory>> budgetAsync) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Budget Breakdown',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 180,
-              child: budgetAsync.when(
-                data: (cats) {
-                  if (cats.isEmpty) {
-                    return const Center(child: Text('No data'));
-                  }
-                  final colors = [
-                    const Color(0xFF4CAF50),
-                    const Color(0xFFFF9800),
-                    const Color(0xFFF44336),
-                    const Color(0xFF2196F3),
-                    const Color(0xFFE91E63),
-                    AppTheme.primaryPurple,
-                  ];
-                  final sections = cats.asMap().entries.map<PieChartSectionData>((e) {
-                    return PieChartSectionData(
-                      value: e.value.budgetAmount,
-                      color: colors[e.key % colors.length],
-                      title: e.value.category.length > 6
-                          ? '${e.value.category.substring(0, 5)}..'
-                          : e.value.category,
-                      titleStyle: GoogleFonts.inter(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                      radius: 60,
-                    );
-                  }).toList();
-                  return PieChart(PieChartData(
-                    sections: sections,
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 30,
-                  ));
-                },
-                loading: () => _shimmerBox(180),
-                error: (e, _) => const Center(child: Text('Error')),
-              ),
+    return GlassCard(
+      accent: AppColors.accentBudget,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Budget Breakdown', style: AppTextStyles.headlineSmall),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 180,
+            child: budgetAsync.when(
+              data: (cats) {
+                if (cats.isEmpty) {
+                  return Center(child: Text('No data', style: AppTextStyles.bodyMedium));
+                }
+                const colors = [
+                  AppColors.accentBudget,
+                  AppColors.accentDashboard,
+                  AppColors.accentCleaning,
+                  Color(0xFF1A9E6E),
+                  Color(0xFFF59E0B),
+                  Color(0xFFDC3545),
+                ];
+                final sections = cats.asMap().entries.map<PieChartSectionData>((e) {
+                  return PieChartSectionData(
+                    value: e.value.budgetAmount,
+                    color: colors[e.key % colors.length],
+                    title: e.value.category.length > 6
+                        ? '${e.value.category.substring(0, 5)}..'
+                        : e.value.category,
+                    titleStyle: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                    radius: 60,
+                  );
+                }).toList();
+                return PieChart(PieChartData(
+                  sections: sections,
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 30,
+                ));
+              },
+              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              error: (e, _) => const Center(child: Text('Error')),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTaskPieChart(BuildContext context, AsyncValue<List<CleaningTask>> cleaningAsync) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Task Status',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 180,
-              child: cleaningAsync.when(
-                data: (tasks) {
-                  final done = tasks.where((t) => t.status.name == 'done').length;
-                  final overdue = tasks.where((t) => t.isOverdue).length;
-                  final pending = tasks.length - done - overdue;
-                  final sections = [
-                    PieChartSectionData(
-                      value: done.toDouble(),
-                      color: const Color(0xFF4CAF50),
-                      title: 'Done\n$done',
-                      titleStyle: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                      radius: 60,
-                    ),
-                    PieChartSectionData(
-                      value: overdue.toDouble(),
-                      color: const Color(0xFFF44336),
-                      title: 'Overdue\n$overdue',
-                      titleStyle: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                      radius: 60,
-                    ),
-                    PieChartSectionData(
-                      value: pending > 0 ? pending.toDouble() : 0.001,
-                      color: const Color(0xFFFF9800),
-                      title: 'Pending\n$pending',
-                      titleStyle: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                      radius: 60,
-                    ),
-                  ];
-                  return PieChart(PieChartData(
-                    sections: sections,
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 30,
-                  ));
-                },
-                loading: () => _shimmerBox(180),
-                error: (e, _) => const Center(child: Text('Error')),
-              ),
+    return GlassCard(
+      accent: AppColors.accentCleaning,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Task Status', style: AppTextStyles.headlineSmall),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 180,
+            child: cleaningAsync.when(
+              data: (tasks) {
+                final done = tasks.where((t) => t.status.name == 'done').length;
+                final overdue = tasks.where((t) => t.isOverdue).length;
+                final pending = tasks.length - done - overdue;
+                final sections = [
+                  PieChartSectionData(
+                    value: done.toDouble(),
+                    color: AppColors.statusDone,
+                    title: 'Done\n$done',
+                    titleStyle: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600, color: Colors.white),
+                    radius: 60,
+                  ),
+                  PieChartSectionData(
+                    value: overdue.toDouble(),
+                    color: AppColors.statusOverdue,
+                    title: 'Overdue\n$overdue',
+                    titleStyle: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600, color: Colors.white),
+                    radius: 60,
+                  ),
+                  PieChartSectionData(
+                    value: pending > 0 ? pending.toDouble() : 0.001,
+                    color: AppColors.statusPending,
+                    title: 'Pending\n$pending',
+                    titleStyle: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.w600, color: Colors.white),
+                    radius: 60,
+                  ),
+                ];
+                return PieChart(PieChartData(
+                  sections: sections,
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 30,
+                ));
+              },
+              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              error: (e, _) => const Center(child: Text('Error')),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -639,18 +551,10 @@ class DashboardScreen extends ConsumerWidget {
   Widget _buildUrgentItems(BuildContext context,
       AsyncValue<List<CleaningTask>> cleaningAsync,
       AsyncValue<List<ShoppingItem>> shoppingAsync) {
-    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Urgent Items',
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
-          ),
-        ),
+        _SectionTitle(title: 'Urgent Items', color: AppColors.textPrimary),
         const SizedBox(height: 12),
         cleaningAsync.when(
           data: (tasks) {
@@ -668,7 +572,7 @@ class DashboardScreen extends ConsumerWidget {
                   .toList(),
             );
           },
-          loading: () => _shimmerBox(100),
+          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           error: (_, __) => const SizedBox.shrink(),
         ),
         const SizedBox(height: 8),
@@ -684,7 +588,7 @@ class DashboardScreen extends ConsumerWidget {
                   .toList(),
             );
           },
-          loading: () => _shimmerBox(80),
+          loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           error: (_, __) => const SizedBox.shrink(),
         ),
       ],
@@ -697,46 +601,37 @@ class DashboardScreen extends ConsumerWidget {
       AsyncValue<List<ShoppingItem>> shoppingAsync,
       AsyncValue<List<BudgetCategory>> budgetAsync,
       AsyncValue<List<HealthHabit>> healthAsync) {
-    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Today's Plan",
-          style: GoogleFonts.inter(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
-          ),
-        ),
+        _SectionTitle(title: "Today's Plan", color: AppColors.textPrimary),
         const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                cleaningAsync.when(
-                  data: (tasks) {
-                    final todayTasks = tasks.where((t) => t.isDueToday || t.isOverdue).toList();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: todayTasks
-                          .take(4)
-                          .map((t) => _PlanItem(
-                                icon: Icons.cleaning_services_rounded,
-                                color: t.isOverdue
-                                    ? Colors.red
-                                    : AppTheme.accentTeal,
-                                text: '${t.name} - ${t.room}',
-                                badge: t.isOverdue ? 'OVERDUE' : 'TODAY',
-                              ))
-                          .toList(),
-                    );
-                  },
-                  loading: () => _shimmerBox(60),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
+        GlassCard(
+          accent: AppColors.accentDashboard,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              cleaningAsync.when(
+                data: (tasks) {
+                  final todayTasks = tasks.where((t) => t.isDueToday || t.isOverdue).toList();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: todayTasks
+                        .take(4)
+                        .map((t) => _PlanItem(
+                              icon: Icons.cleaning_services_rounded,
+                              color: t.isOverdue
+                                  ? AppColors.statusOverdue
+                                  : AppColors.accentCleaning,
+                              text: '${t.name} - ${t.room}',
+                              badge: t.isOverdue ? 'OVERDUE' : 'TODAY',
+                            ))
+                        .toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
                 healthAsync.when(
                   data: (habits) {
                     final incomplete = habits.where((h) => !h.isCompleted).toList();
@@ -776,8 +671,7 @@ class DashboardScreen extends ConsumerWidget {
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ],
@@ -788,35 +682,27 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildTodaysNutrition(BuildContext context,
       AsyncValue<List<FoodEntry>> foodAsync, AsyncValue<int> goalAsync) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Today's Nutrition",
-                  style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: cs.onSurface),
+    return GlassCard(
+      accent: AppColors.accentFood,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Today's Nutrition", style: AppTextStyles.headlineSmall),
+              foodAsync.when(
+                data: (entries) => _InfoChip(
+                  icon: Icons.restaurant_menu_rounded,
+                  label: '${entries.length} items logged',
+                  color: AppColors.accentFood,
                 ),
-                foodAsync.when(
-                  data: (entries) => _InfoChip(
-                    icon: Icons.restaurant_menu_rounded,
-                    label: '${entries.length} items logged',
-                    color: const Color(0xFFFF9800),
-                  ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
             foodAsync.when(
               data: (entries) {
                 final goal = goalAsync.when(
@@ -834,7 +720,7 @@ class DashboardScreen extends ConsumerWidget {
                     goal > 0 ? (totalCals / goal).clamp(0.0, 1.0) : 0.0;
                 final isOver = totalCals > goal;
                 final ringColor =
-                    isOver ? Colors.red : AppTheme.primaryPurple;
+                    isOver ? AppColors.statusOverdue : AppColors.accentFood;
                 final hasMacros =
                     totalProtein + totalCarbs + totalFat > 0;
 
@@ -853,8 +739,7 @@ class DashboardScreen extends ConsumerWidget {
                             painter: _DashCalorieRingPainter(
                               progress: progress,
                               ringColor: ringColor,
-                              bgColor:
-                                  cs.onSurface.withOpacity(0.08),
+                              bgColor: AppColors.glassBorder,
                             ),
                           ),
                           Column(
@@ -862,21 +747,14 @@ class DashboardScreen extends ConsumerWidget {
                             children: [
                               Text(
                                 totalCals.toInt().toString(),
-                                style: GoogleFonts.inter(
+                                style: AppTextStyles.titleMedium.copyWith(
                                   fontSize: 20,
-                                  fontWeight: FontWeight.w800,
                                   color: isOver
-                                      ? Colors.red
-                                      : cs.onSurface,
+                                      ? AppColors.statusOverdue
+                                      : AppColors.textPrimary,
                                 ),
                               ),
-                              Text(
-                                'kcal',
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  color: cs.onSurface.withOpacity(0.5),
-                                ),
-                              ),
+                              Text('kcal', style: AppTextStyles.bodySmall),
                             ],
                           ),
                         ],
@@ -888,25 +766,24 @@ class DashboardScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _dashMacroBar(cs, 'Protein', totalProtein, 150,
+                          _dashMacroBar('Protein', totalProtein, 150,
                               const Color(0xFFFF5722)),
                           const SizedBox(height: 7),
-                          _dashMacroBar(cs, 'Carbs', totalCarbs, 250,
+                          _dashMacroBar('Carbs', totalCarbs, 250,
                               const Color(0xFFFFC107)),
                           const SizedBox(height: 7),
-                          _dashMacroBar(cs, 'Fat', totalFat, 65,
+                          _dashMacroBar('Fat', totalFat, 65,
                               const Color(0xFF2196F3)),
                           const SizedBox(height: 8),
                           Text(
                             isOver
                                 ? 'Over by ${(totalCals - goal).toInt()} kcal'
                                 : '${(goal - totalCals).toInt()} kcal left of ${goal.toInt()}',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
+                            style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.w600,
                               color: isOver
-                                  ? Colors.red
-                                  : const Color(0xFF4CAF50),
+                                  ? AppColors.statusOverdue
+                                  : AppColors.statusDone,
                             ),
                           ),
                         ],
@@ -947,75 +824,54 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => _shimmerBox(96),
+              loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
               error: (_, __) => const SizedBox.shrink(),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _dashMacroBar(
-      ColorScheme cs, String label, double current, double target, Color color) {
+      String label, double current, double target, Color color) {
     final progress =
         target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     return Row(
       children: [
         SizedBox(
           width: 44,
-          child: Text(label,
-              style: GoogleFonts.inter(
-                  fontSize: 11, color: cs.onSurface.withOpacity(0.55))),
+          child: Text(label, style: AppTextStyles.bodySmall),
         ),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: cs.onSurface.withOpacity(0.08),
+              backgroundColor: AppColors.glassBorder,
               valueColor: AlwaysStoppedAnimation(color),
               minHeight: 6,
             ),
           ),
         ),
         const SizedBox(width: 6),
-        Text('${current.toInt()}g',
-            style: GoogleFonts.inter(
-                fontSize: 10, color: cs.onSurface.withOpacity(0.5))),
+        Text('${current.toInt()}g', style: AppTextStyles.bodySmall),
       ],
     );
   }
 
   Widget _emptyState(BuildContext context, String message, IconData icon) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Icon(icon, color: AppTheme.accentTeal, size: 20),
+          Icon(icon, color: AppColors.accentBudget, size: 20),
           const SizedBox(width: 8),
-          Text(message,
-              style: GoogleFonts.inter(
-                  color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
+          Text(message, style: AppTextStyles.bodyMedium),
         ],
       ),
     );
   }
 
-  Widget _shimmerBox(double height) {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1A1A2E),
-      highlightColor: const Color(0xFF252540),
-      child: Container(
-        height: height,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
 }
 
 // ─── Month nav button ─────────────────────────────────────────────
@@ -1027,7 +883,6 @@ class _MonthNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -1037,8 +892,8 @@ class _MonthNavButton extends StatelessWidget {
           icon,
           size: 20,
           color: onTap == null
-              ? cs.onSurface.withOpacity(0.2)
-              : cs.onSurface.withOpacity(0.7),
+              ? AppColors.textSubtle
+              : AppColors.textMuted,
         ),
       ),
     );
@@ -1059,7 +914,7 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -1067,92 +922,13 @@ class _InfoChip extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(label,
-              style: GoogleFonts.inter(
-                  color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(label, style: AppTextStyles.labelAccent.copyWith(color: color)),
         ],
       ),
     );
   }
 }
 
-class _StatCardData {
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final List<Color> gradient;
-
-  const _StatCardData({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.gradient,
-  });
-}
-
-class _StatCard extends StatelessWidget {
-  final _StatCardData data;
-  const _StatCard({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: data.gradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: data.gradient.first.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(data.icon, color: Colors.white70, size: 20),
-              Text(
-                data.value,
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            data.title,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Text(
-            data.subtitle,
-            style: GoogleFonts.inter(
-              color: Colors.white70,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _UrgentTaskTile extends StatelessWidget {
   final CleaningTask task;
@@ -1160,36 +936,53 @@ class _UrgentTaskTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
+    final accent = task.daysOverdue > 7 ? AppColors.statusOverdue : AppColors.statusPending;
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Container(
-          width: 4,
-          height: 40,
-          decoration: BoxDecoration(
-            color: task.daysOverdue > 7 ? Colors.red : Colors.orange,
-            borderRadius: BorderRadius.circular(2),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 36,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        title: Text(task.name,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: cs.onSurface)),
-        subtitle: Text('${task.room} • ${task.daysOverdue} days overdue',
-            style: GoogleFonts.inter(color: cs.onSurface.withOpacity(0.6), fontSize: 12)),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(6),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(task.name,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text('${task.room} · ${task.daysOverdue}d overdue',
+                    style: AppTextStyles.bodySmall),
+              ],
+            ),
           ),
-          child: Text(
-            'OVERDUE',
-            style: GoogleFonts.inter(
-                color: Colors.red,
-                fontSize: 10,
-                fontWeight: FontWeight.w700),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: accent.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              '${task.daysOverdue}d',
+              style: AppTextStyles.labelAccent.copyWith(color: accent),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1201,30 +994,56 @@ class _UrgentShoppingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Card(
+    const accent = AppColors.accentExpenses;
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: const Icon(Icons.shopping_cart_rounded, color: Colors.red, size: 20),
-        title: Text(item.name,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: cs.onSurface)),
-        subtitle: Text('${item.category} • ₹${item.cost}',
-            style: GoogleFonts.inter(
-                color: cs.onSurface.withOpacity(0.6), fontSize: 12)),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.glassCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.shopping_cart_rounded,
+                color: accent, size: 15),
           ),
-          child: Text(
-            'HIGH',
-            style: GoogleFonts.inter(
-                color: Colors.red,
-                fontSize: 10,
-                fontWeight: FontWeight.w700),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text('${item.category} · ₹${item.cost}',
+                    style: AppTextStyles.bodySmall),
+              ],
+            ),
           ),
-        ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: accent.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              'HIGH',
+              style: AppTextStyles.labelAccent.copyWith(color: accent),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1245,30 +1064,38 @@ class _PlanItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 18),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Icon(icon, color: color, size: 14),
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text,
-                style: GoogleFonts.inter(
-                    color: cs.onSurface, fontSize: 13)),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(text, style: AppTextStyles.bodyMedium),
+            ),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(4),
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
             ),
             child: Text(
               badge,
-              style: GoogleFonts.inter(
-                  color: color, fontSize: 9, fontWeight: FontWeight.w700),
+              style: AppTextStyles.labelAccent.copyWith(color: color),
             ),
           ),
         ],
@@ -1323,4 +1150,34 @@ class _DashCalorieRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(_DashCalorieRingPainter old) =>
       old.progress != progress || old.ringColor != ringColor;
+}
+
+
+// ─── Section Title ────────────────────────────────────────────────
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final Color color;
+  const _SectionTitle({required this.title, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 18,
+          decoration: BoxDecoration(
+            color: AppColors.accentDashboard,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: AppTextStyles.headlineMedium.copyWith(color: color),
+        ),
+      ],
+    );
+  }
 }
