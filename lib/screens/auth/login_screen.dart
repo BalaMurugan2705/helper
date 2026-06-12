@@ -342,12 +342,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                'Forgot Password?',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: const Color(0xFF3B82F6).withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
+              child: GestureDetector(
+                onTap: () async {
+                  final result = await showGlassSheet<bool>(
+                    context: context,
+                    title: 'Reset Password',
+                    content: _ForgotPasswordContent(
+                      authService: ref.read(authServiceProvider),
+                      initialEmail: _emailCtrl.text.trim(),
+                    ),
+                  );
+                  if (result == true && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Password reset email sent. Check your inbox.'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                child: Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: const Color(0xFF3B82F6).withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
