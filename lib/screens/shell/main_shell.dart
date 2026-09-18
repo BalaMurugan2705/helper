@@ -35,6 +35,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     _NavItem(icon: Icons.restaurant_menu_rounded,    label: 'Food',       path: '/food'),
     _NavItem(icon: Icons.auto_awesome_rounded,       label: 'AI Advisor', path: '/advisor'),
     _NavItem(icon: Icons.favorite_border_rounded,    label: 'Wish List',  path: '/wishlist'),
+    _NavItem(icon: Icons.code_rounded,               label: 'HTML Files', path: '/html-files'),
+    _NavItem(icon: Icons.monitor_heart_rounded,      label: 'Daily Monitor', path: '/daily-monitor'),
   ];
 
   // flat list — no group headers, TASKHUB style
@@ -48,6 +50,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     const _NavItem(icon: Icons.restaurant_menu_rounded,        label: 'Food Tracker',   path: '/food'),
     const _NavItem(icon: Icons.favorite_border_rounded,        label: 'Wish List',      path: '/wishlist'),
     const _NavItem(icon: Icons.auto_awesome_rounded,           label: 'AI Advisor',     path: '/advisor'),
+    const _NavItem(icon: Icons.code_rounded,                   label: 'HTML Files',     path: '/html-files'),
+    const _NavItem(icon: Icons.monitor_heart_rounded,          label: 'Daily Monitor',  path: '/daily-monitor'),
     if (isAdmin)
       const _NavItem(icon: Icons.health_and_safety_rounded,   label: 'PCOS Guide',     path: '/pcos-guide'),
   ];

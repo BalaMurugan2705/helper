@@ -7,6 +7,8 @@ import '../models/shopping_item.dart';
 import '../models/budget_category.dart';
 import '../models/health_habit.dart';
 import '../models/wish_item.dart';
+import '../models/html_file.dart';
+import '../models/daily_log.dart';
 import '../services/auth_service.dart';
 import '../services/firebase_service.dart';
 
@@ -119,6 +121,36 @@ final wishListProvider = StreamProvider<List<WishItem>>((ref) {
   final service = ref.watch(firebaseServiceProvider);
   if (service == null) return const Stream.empty();
   return service.wishListStream();
+});
+
+// ─── HTML Files Stream ────────────────────────────────────────────
+
+final htmlFilesProvider = StreamProvider<List<HtmlFile>>((ref) {
+  final service = ref.watch(firebaseServiceProvider);
+  if (service == null) return const Stream.empty();
+  return service.htmlFilesStream();
+});
+
+// ─── Daily Monitor Stream ─────────────────────────────────────────
+
+final dailyLogsProvider = StreamProvider<List<DailyLog>>((ref) {
+  final service = ref.watch(firebaseServiceProvider);
+  if (service == null) return const Stream.empty();
+  return service.dailyLogsStream();
+});
+
+// Rolls Food Tracker entries from the last [daysBack] days into the
+// Daily Monitor's calorie/protein charts, so logging food there is
+// enough — no separate manual entry needed.
+final foodEntriesForMonitorProvider =
+    StreamProvider.family<List<FoodEntry>, int>((ref, daysBack) {
+  final service = ref.watch(firebaseServiceProvider);
+  if (service == null) return const Stream.empty();
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final start = today.subtract(Duration(days: daysBack - 1));
+  final endExclusive = today.add(const Duration(days: 1));
+  return service.foodEntriesRangeStream(start, endExclusive);
 });
 
 // ─── Dashboard Month Filter ───────────────────────────────────────
