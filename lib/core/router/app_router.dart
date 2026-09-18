@@ -15,6 +15,10 @@ import '../../screens/food/food_tracker_screen.dart';
 import '../../screens/settings/notification_settings_screen.dart';
 import '../../screens/wishlist/wishlist_screen.dart';
 import '../../screens/pcos_guide/pcos_guide_screen.dart';
+import '../../screens/html_files/html_files_screen.dart';
+import '../../screens/html_files/html_file_viewer_screen.dart';
+import '../../models/html_file.dart';
+import '../../screens/daily_monitor/daily_monitor_screen.dart';
 
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
@@ -119,6 +123,26 @@ final appRouter = GoRouter(
           path: '/pcos-guide',
           pageBuilder: (context, state) => const NoTransitionPage(
             child: PcosGuideScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/html-files',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: HtmlFilesScreen(),
+          ),
+          routes: [
+            GoRoute(
+              path: 'view',
+              pageBuilder: (context, state) => NoTransitionPage(
+                child: HtmlFileViewerScreen(file: state.extra as HtmlFile),
+              ),
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/daily-monitor',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: DailyMonitorScreen(),
           ),
         ),
       ],

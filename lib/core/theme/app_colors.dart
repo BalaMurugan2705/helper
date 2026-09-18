@@ -44,6 +44,10 @@ class AppColors {
   static const Color accentWishlist2  = Color(0xFFD946EF);
   static const Color accentPcos       = Color(0xFF93C5FD); // blue-300
   static const Color accentPcos2      = Color(0xFF60A5FA); // blue-400
+  static const Color accentHtmlFiles  = Color(0xFF818CF8); // indigo-400
+  static const Color accentHtmlFiles2 = Color(0xFF6366F1); // indigo-500
+  static const Color accentMonitor    = Color(0xFF2DD4BF); // teal-400
+  static const Color accentMonitor2   = Color(0xFF14B8A6); // teal-500
 
   /// Returns `rgba(accent, 0.20)` border for accent-tinted glass cards.
   static Color glassBorderAccent(Color accent) => accent.withValues(alpha: 0.20);

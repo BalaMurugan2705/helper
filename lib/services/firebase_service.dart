@@ -6,6 +6,8 @@ import '../models/shopping_item.dart';
 import '../models/budget_category.dart';
 import '../models/health_habit.dart';
 import '../models/wish_item.dart';
+import '../models/html_file.dart';
+import '../models/daily_log.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -37,6 +39,12 @@ class FirebaseService {
 
   CollectionReference get _foodRef =>
       _db.collection('users').doc(userId).collection('food_entries');
+
+  CollectionReference get _htmlFilesRef =>
+      _db.collection('users').doc(userId).collection('html_files');
+
+  CollectionReference get _dailyLogsRef =>
+      _db.collection('users').doc(userId).collection('daily_logs');
 
   // ─── Cleaning Tasks ───────────────────────────────────────────────
 
@@ -542,6 +550,40 @@ class FirebaseService {
     };
   }
 
+  // ─── HTML Files ───────────────────────────────────────────────────
+
+  Stream<List<HtmlFile>> htmlFilesStream() {
+    return _htmlFilesRef
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map<HtmlFile>(HtmlFile.fromFirestore).toList());
+  }
+
+  Future<void> addHtmlFile(HtmlFile file) async {
+    await _htmlFilesRef.add(file.toFirestore());
+  }
+
+  Future<void> deleteHtmlFile(String id) async {
+    await _htmlFilesRef.doc(id).delete();
+  }
+
+  // ─── Daily Monitor ──────────────────────────────────────────────────
+
+  Stream<List<DailyLog>> dailyLogsStream() {
+    return _dailyLogsRef
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map<DailyLog>(DailyLog.fromFirestore).toList());
+  }
+
+  Future<void> saveDailyLog(DailyLog log) async {
+    await _dailyLogsRef.doc(log.id).set(log.toFirestore(), SetOptions(merge: true));
+  }
+
+  Future<void> deleteDailyLog(String id) async {
+    await _dailyLogsRef.doc(id).delete();
+  }
+
   // ─── Food Entries ─────────────────────────────────────────────────
 
   Stream<List<FoodEntry>> foodEntriesStream(DateTime date) {
@@ -550,6 +592,22 @@ class FirebaseService {
     return _foodRef
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('date', isLessThan: Timestamp.fromDate(end))
+        .snapshots()
+        .map((snap) {
+          final entries =
+              snap.docs.map<FoodEntry>(FoodEntry.fromFirestore).toList();
+          entries.sort((a, b) => a.date.compareTo(b.date));
+          return entries;
+        });
+  }
+
+  /// All entries within [start] (inclusive) and [endExclusive], ordered by date.
+  /// Used to roll daily calorie/protein totals up into the Daily Monitor.
+  Stream<List<FoodEntry>> foodEntriesRangeStream(
+      DateTime start, DateTime endExclusive) {
+    return _foodRef
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('date', isLessThan: Timestamp.fromDate(endExclusive))
         .snapshots()
         .map((snap) {
           final entries =
