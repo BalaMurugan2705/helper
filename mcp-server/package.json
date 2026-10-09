@@ -1,0 +1,16 @@
+{
+  "name": "helper-mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Remote MCP server exposing the Helper app's Firestore data to Claude",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "firebase-admin": "^12.6.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
